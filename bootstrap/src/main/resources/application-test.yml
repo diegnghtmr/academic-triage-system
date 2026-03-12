@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:tc:mariadb:11:///triage_test_db
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    enabled: true
+  ai:
+    openai:
+      api-key: ""
+
+app:
+  jwt:
+    secret: test-secret-key-for-testing-only-256-bits-long!!
+    expiration-ms: 3600000
+
+logging:
+  level:
+    co.edu.uniquindio.triage: DEBUG

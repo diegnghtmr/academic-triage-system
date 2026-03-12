@@ -1,0 +1,1967 @@
+openapi: 3.0.3
+info:
+  title: Academic Triage & Request Management System
+  description: |
+    REST API for the Academic Triage System of the Ingeniería de Sistemas y Computación
+    at Universidad del Quindío.
+
+    ## Architecture
+    - **Backend**: Spring Boot (Java) with Hexagonal Architecture
+    - **Frontend**: Angular (TypeScript)
+    - **Authentication**: JWT Bearer Token
+    - **AI**: Optional LLM integration for classification suggestions and summaries
+
+    ## System Roles
+    | Role | Description |
+    |------|-------------|
+    | `ADMIN` | Configures catalogs, manages users, defines business rules, and can reject requests |
+    | `STAFF` | Classifies, prioritizes, attends, and closes requests |
+    | `STUDENT` | Submits requests, can cancel their own requests, and checks status |
+
+    ## Request Lifecycle
+    ```
+    REGISTERED → CLASSIFIED → IN_PROGRESS → ATTENDED → CLOSED
+    REGISTERED → REJECTED
+    REGISTERED/CLASSIFIED → CANCELLED
+    ```
+    Transitions only move forward; terminal states (`CLOSED`, `CANCELLED`, `REJECTED`) are immutable.
+
+    ## Authorization Model
+    All endpoints require a valid JWT token unless explicitly marked as public.
+    Role-based access is enforced per endpoint as documented.
+  version: 1.0.0
+  contact:
+    name: Development Team
+    email: diegoa.floresq@uqvirtual.edu.co, juanp.morar@uqvirtual.edu.co, brahians.mosquerav@uqvirtual.edu.co
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://triage-academico.uniquindio.edu.co/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User registration and login (JWT)
+  - name: Requests
+    description: Full lifecycle management of academic requests
+  - name: History
+    description: Auditable action log for each request
+  - name: Users
+    description: User management (Admin only)
+  - name: Catalogs
+    description: Configurable request types, origin channels and priorities
+  - name: Business Rules
+    description: Rules for automated classification and prioritization
+  - name: AI Assistant
+    description: Optional LLM-powered classification suggestions and summaries
+  - name: Reports
+    description: Operational metrics and dashboard data
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  # ═══════════════════════════════════════════
+  # AUTHENTICATION
+  # ═══════════════════════════════════════════
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in
+      description: Authenticates a user and returns a JWT token.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: "jperez"
+              password: "MyPassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      description: |
+        Creates a new user account. Only ADMIN users can assign STAFF or ADMIN roles.
+        Without a token, the account is created with the STUDENT role by default.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ═══════════════════════════════════════════
+  # ACADEMIC REQUESTS
+  # ═══════════════════════════════════════════
+
+  /requests:
+    post:
+      tags: [Requests]
+      summary: Submit a new academic request
+      description: |
+        Creates an academic request with the initial status `REGISTERED`.
+
+        **Allowed roles**: STUDENT, STAFF.
+
+        The system stores the request type, description, origin channel,
+        registration timestamp, and the requester's identity.
+      operationId: createRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequestBody'
+            example:
+              requestTypeId: 1
+              originChannelId: 2
+              description: "I need an additional seat in Database Systems I, group 02, because my current group is full and I have a schedule conflict."
+              deadline: "2026-03-15"
+      responses:
+        '201':
+          description: Request registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+          headers:
+            Location:
+              description: URI of the newly created request
+              schema:
+                type: string
+                example: /api/v1/requests/42
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    get:
+      tags: [Requests]
+      summary: List requests with filters
+      description: |
+        Returns a paginated list of requests filtered by the given criteria.
+
+        **ADMIN/STAFF**: Can see all requests.
+        **STUDENT**: Can only see their own requests.
+      operationId: listRequests
+      parameters:
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/RequestTypeFilter'
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/AssignedToFilter'
+        - $ref: '#/components/parameters/RequesterFilter'
+        - $ref: '#/components/parameters/DateFromFilter'
+        - $ref: '#/components/parameters/DateToFilter'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Paginated list of requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /requests/{requestId}:
+    get:
+      tags: [Requests]
+      summary: Get request details
+      description: |
+        Returns the full details of a request including its current status,
+        priority, assigned staff member, and complete history.
+
+        **STUDENT**: Can only access their own requests.
+      operationId: getRequestById
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /requests/{requestId}/classify:
+    patch:
+      tags: [Requests]
+      summary: Classify a request
+      description: |
+        Assigns or updates the request type. Transitions the status to `CLASSIFIED`.
+
+        **Allowed roles**: STAFF.
+        **Precondition**: The request must be in `REGISTERED` status.
+      operationId: classifyRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassifyRequestBody'
+            example:
+              requestTypeId: 4
+              observations: "Reclassified as a seat request based on the student's description."
+      responses:
+        '200':
+          description: Request classified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 409
+                error: "Conflict"
+                message: "Cannot classify a request in CANCELLED status. Required status: REGISTERED."
+                timestamp: "2026-03-01T10:30:00Z"
+
+  /requests/{requestId}/prioritize:
+    patch:
+      tags: [Requests]
+      summary: Prioritize a request
+      description: |
+        Assigns a priority level (HIGH, MEDIUM, LOW) with a mandatory justification
+        based on business rules.
+
+        **Allowed roles**: STAFF.
+        **Precondition**: The request must be in `CLASSIFIED` status.
+      operationId: prioritizeRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrioritizeRequestBody'
+            example:
+              priority: "HIGH"
+              justification: "Seat request with an upcoming registration deadline (3 days). High academic impact."
+      responses:
+        '200':
+          description: Request prioritized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /requests/{requestId}/assign:
+    patch:
+      tags: [Requests]
+      summary: Assign a responsible staff member
+      description: |
+        Assigns an active STAFF user as the person responsible for handling the request.
+        Transitions the status to `IN_PROGRESS`.
+
+        **Allowed roles**: STAFF.
+        **Precondition**: The request must be in `CLASSIFIED` status (already prioritized).
+        **Validation**: The assigned user must be active and have the STAFF role.
+      operationId: assignRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRequestBody'
+            example:
+              assignedToUserId: 15
+              observations: "Assigned to the academic registration coordinator."
+      responses:
+        '200':
+          description: Request assigned and now in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Invalid state transition or assigned user is inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /requests/{requestId}/attend:
+    patch:
+      tags: [Requests]
+      summary: Mark a request as attended
+      description: |
+        Records the resolution and actions taken, then transitions the status to `ATTENDED`.
+
+        **Allowed roles**: STAFF (preferably the assigned responsible).
+        **Precondition**: The request must be in `IN_PROGRESS` status.
+      operationId: attendRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendRequestBody'
+            example:
+              observations: "An additional seat was arranged with the course instructor. The student has been enrolled in group 02."
+      responses:
+        '200':
+          description: Request marked as attended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /requests/{requestId}/close:
+    patch:
+      tags: [Requests]
+      summary: Close a request
+      description: |
+        Permanently closes the request with a mandatory closing observation.
+        **A request in terminal state (`CLOSED`, `CANCELLED`, `REJECTED`) cannot be modified.**
+
+        **Allowed roles**: STAFF.
+        **Preconditions**:
+        - The request must be in `ATTENDED` status.
+        - A closing observation is mandatory.
+      operationId: closeRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseRequestBody'
+            example:
+              closingObservation: "Request resolved successfully. The student confirmed enrollment in the requested group."
+      responses:
+        '200':
+          description: Request closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          description: Missing closing observation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /requests/{requestId}/cancel:
+    patch:
+      tags: [Requests]
+      summary: Cancel a request
+      description: |
+        Cancels the request with an explicit user-provided reason.
+        Transitions the status to `CANCELLED`.
+
+        **Allowed roles**: STUDENT (request owner), STAFF, ADMIN.
+        **Preconditions**:
+        - The request must be in `REGISTERED` or `CLASSIFIED` status.
+        - A cancellation reason is mandatory.
+      operationId: cancelRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequestBody'
+            example:
+              cancellationReason: "I no longer need this process because I resolved it directly with the academic office."
+      responses:
+        '200':
+          description: Request cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          description: Missing cancellation reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /requests/{requestId}/reject:
+    patch:
+      tags: [Requests]
+      summary: Reject a request
+      description: |
+        Rejects the request with a justified administrative reason.
+        Transitions the status to `REJECTED`.
+
+        **Allowed roles**: ADMIN.
+        **Preconditions**:
+        - The request must be in `REGISTERED` status.
+        - A rejection reason is mandatory.
+      operationId: rejectRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequestBody'
+            example:
+              rejectionReason: "The request does not meet the academic policy requirements and lacks required supporting documents."
+      responses:
+        '200':
+          description: Request rejected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          description: Missing rejection reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ═══════════════════════════════════════════
+  # HISTORY
+  # ═══════════════════════════════════════════
+
+  /requests/{requestId}/history:
+    get:
+      tags: [History]
+      summary: Get the full history of a request
+      description: |
+        Returns the complete auditable history of a request, including
+        timestamp, action performed, responsible user, and observations for each entry.
+
+        **STUDENT**: Can only view the history of their own requests.
+      operationId: getRequestHistory
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistoryEntryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [History]
+      summary: Add an internal note to the history
+      description: |
+        Adds an internal or follow-up note without changing the request status.
+        Useful for recording intermediate actions or communications.
+
+        **Allowed roles**: STAFF.
+      operationId: addHistoryNote
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddHistoryNoteBody'
+            example:
+              action: "INTERNAL_NOTE"
+              observations: "Contacted the instructor to verify seat availability."
+      responses:
+        '201':
+          description: Note added to history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryEntryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════
+  # USERS
+  # ═══════════════════════════════════════════
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      description: |
+        Returns a paginated list of system users with optional filters.
+
+        **Allowed roles**: ADMIN.
+      operationId: listUsers
+      parameters:
+        - name: role
+          in: query
+          description: Filter by role
+          schema:
+            $ref: '#/components/schemas/RoleEnum'
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user details
+      description: |
+        Returns the full profile of a specific user.
+
+        **Allowed roles**: ADMIN, or the user themselves.
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update a user
+      description: |
+        Updates user information including activation/deactivation and role changes.
+
+        **Allowed roles**: ADMIN.
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserBody'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════
+  # CATALOGS
+  # ═══════════════════════════════════════════
+
+  /catalogs/request-types:
+    get:
+      tags: [Catalogs]
+      summary: List request types
+      description: Returns all active request types in the catalog.
+      operationId: listRequestTypes
+      parameters:
+        - name: active
+          in: query
+          description: Filter by active status. Defaults to returning only active types.
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of request types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequestTypeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Catalogs]
+      summary: Create a request type
+      description: |
+        Adds a new request type to the catalog.
+
+        **Allowed roles**: ADMIN.
+      operationId: createRequestType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequestTypeBody'
+            example:
+              name: "Course Equivalency"
+              description: "Request for recognition of courses taken at another institution."
+      responses:
+        '201':
+          description: Request type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestTypeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A request type with the same name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /catalogs/request-types/{typeId}:
+    get:
+      tags: [Catalogs]
+      summary: Get a request type by ID
+      operationId: getRequestTypeById
+      parameters:
+        - $ref: '#/components/parameters/TypeIdPath'
+      responses:
+        '200':
+          description: Request type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestTypeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Catalogs]
+      summary: Update a request type
+      description: |
+        **Allowed roles**: ADMIN.
+      operationId: updateRequestType
+      parameters:
+        - $ref: '#/components/parameters/TypeIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequestTypeBody'
+      responses:
+        '200':
+          description: Request type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestTypeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /catalogs/origin-channels:
+    get:
+      tags: [Catalogs]
+      summary: List origin channels
+      description: Returns all available origin channels (e.g., in-person, email, phone, academic system).
+      operationId: listOriginChannels
+      parameters:
+        - name: active
+          in: query
+          description: Filter by active status. Defaults to returning only active channels.
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of origin channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OriginChannelResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Catalogs]
+      summary: Create an origin channel
+      description: |
+        **Allowed roles**: ADMIN.
+      operationId: createOriginChannel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOriginChannelBody'
+            example:
+              name: "Email"
+      responses:
+        '201':
+          description: Origin channel created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OriginChannelResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: An origin channel with the same name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /catalogs/origin-channels/{channelId}:
+    get:
+      tags: [Catalogs]
+      summary: Get an origin channel by ID
+      operationId: getOriginChannelById
+      parameters:
+        - $ref: '#/components/parameters/ChannelIdPath'
+      responses:
+        '200':
+          description: Origin channel details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OriginChannelResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Catalogs]
+      summary: Update an origin channel
+      description: |
+        **Allowed roles**: ADMIN.
+      operationId: updateOriginChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOriginChannelBody'
+      responses:
+        '200':
+          description: Origin channel updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OriginChannelResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════
+  # BUSINESS RULES
+  # ═══════════════════════════════════════════
+
+  /business-rules:
+    get:
+      tags: [Business Rules]
+      summary: List business rules
+      description: |
+        Returns all prioritization rules defined in the system.
+
+        **Allowed roles**: ADMIN, STAFF.
+      operationId: listBusinessRules
+      parameters:
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+        - name: conditionType
+          in: query
+          description: Filter by condition type
+          schema:
+            $ref: '#/components/schemas/ConditionTypeEnum'
+      responses:
+        '200':
+          description: List of business rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BusinessRuleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Business Rules]
+      summary: Create a business rule
+      description: |
+        Defines a new rule for automatic priority suggestion based on request type,
+        impact level, or deadline proximity.
+
+        **Allowed roles**: ADMIN.
+      operationId: createBusinessRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBusinessRuleBody'
+            example:
+              name: "Urgent seat requests"
+              description: "Seat requests with a deadline under 5 days receive HIGH priority."
+              conditionType: "REQUEST_TYPE_AND_DEADLINE"
+              conditionValue: "{\"requestTypeId\": 4, \"maxDaysUntilDeadline\": 5}"
+              resultingPriority: "HIGH"
+              active: true
+      responses:
+        '201':
+          description: Business rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessRuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /business-rules/{ruleId}:
+    get:
+      tags: [Business Rules]
+      summary: Get a business rule by ID
+      operationId: getBusinessRuleById
+      parameters:
+        - $ref: '#/components/parameters/RuleIdPath'
+      responses:
+        '200':
+          description: Business rule details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessRuleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Business Rules]
+      summary: Update a business rule
+      description: |
+        **Allowed roles**: ADMIN.
+      operationId: updateBusinessRule
+      parameters:
+        - $ref: '#/components/parameters/RuleIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBusinessRuleBody'
+      responses:
+        '200':
+          description: Business rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessRuleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Business Rules]
+      summary: Deactivate a business rule
+      description: |
+        Performs a soft delete by setting the rule to inactive.
+
+        **Allowed roles**: ADMIN.
+      operationId: deactivateBusinessRule
+      parameters:
+        - $ref: '#/components/parameters/RuleIdPath'
+      responses:
+        '204':
+          description: Business rule deactivated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════
+  # AI ASSISTANT
+  # ═══════════════════════════════════════════
+
+  /ai/suggest-classification:
+    post:
+      tags: [AI Assistant]
+      summary: Suggest classification and priority
+      description: |
+        Sends the descriptive text of a request to an external LLM and returns
+        suggested request type and priority level.
+
+        **Important**: This feature is optional. If the AI service is unavailable,
+        the endpoint returns `503` and the system continues to operate normally
+        with manual classification.
+
+        Suggestions **must be confirmed or adjusted by a human user** before being applied.
+
+        **Allowed roles**: STAFF.
+      operationId: suggestClassification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiClassificationRequest'
+            example:
+              description: "I need to cancel Calculus II because I have a schedule conflict with Physics I and cannot attend both."
+      responses:
+        '200':
+          description: Suggestion generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiClassificationResponse'
+              example:
+                suggestedRequestType: "Course Cancellation"
+                suggestedRequestTypeId: 3
+                suggestedPriority: "MEDIUM"
+                confidence: 0.87
+                reasoning: "The description explicitly mentions course cancellation due to a schedule conflict. Medium priority because no immediate deadline is mentioned."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          description: AI service unavailable — the system operates without AI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 503
+                error: "Service Unavailable"
+                message: "The AI service is currently unavailable. Please use manual classification."
+                timestamp: "2026-03-01T10:30:00Z"
+
+  /ai/summarize/{requestId}:
+    get:
+      tags: [AI Assistant]
+      summary: Generate a request summary
+      description: |
+        Generates a textual summary of the current status and full history of a request
+        using an external LLM.
+
+        **Important**: If the AI service is unavailable, returns `503`.
+
+        **Allowed roles**: STAFF, ADMIN.
+      operationId: summarizeRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Summary generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSummaryResponse'
+              example:
+                requestId: 42
+                summary: "Seat request for Database Systems I submitted on 2026-02-28. Classified as 'Seat Request' with HIGH priority due to an approaching deadline. Assigned to the registration coordinator. Resolved positively: the student was enrolled in group 02. Closed successfully."
+                generatedAt: "2026-03-01T10:35:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ═══════════════════════════════════════════
+  # REPORTS
+  # ═══════════════════════════════════════════
+
+  /reports/dashboard:
+    get:
+      tags: [Reports]
+      summary: Get operational dashboard metrics
+      description: |
+        Returns aggregated metrics: volume by status, type, responsible staff member,
+        priority distribution, and average resolution times.
+
+        **Allowed roles**: ADMIN.
+      operationId: getDashboardMetrics
+      parameters:
+        - name: dateFrom
+          in: query
+          description: Start date for metrics calculation (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          description: End date for metrics calculation (inclusive)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ──────────────────────────────────────────────
+# COMPONENTS
+# ──────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login
+
+  parameters:
+    RequestIdPath:
+      name: requestId
+      in: path
+      required: true
+      description: Unique identifier of the academic request
+      schema:
+        type: integer
+        format: int64
+
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      description: Unique identifier of the user
+      schema:
+        type: integer
+        format: int64
+
+    TypeIdPath:
+      name: typeId
+      in: path
+      required: true
+      description: Unique identifier of the request type
+      schema:
+        type: integer
+        format: int64
+
+    ChannelIdPath:
+      name: channelId
+      in: path
+      required: true
+      description: Unique identifier of the origin channel
+      schema:
+        type: integer
+        format: int64
+
+    RuleIdPath:
+      name: ruleId
+      in: path
+      required: true
+      description: Unique identifier of the business rule
+      schema:
+        type: integer
+        format: int64
+
+    StatusFilter:
+      name: status
+      in: query
+      description: Filter by request status
+      schema:
+        $ref: '#/components/schemas/RequestStatusEnum'
+
+    RequestTypeFilter:
+      name: requestTypeId
+      in: query
+      description: Filter by request type ID
+      schema:
+        type: integer
+        format: int64
+
+    PriorityFilter:
+      name: priority
+      in: query
+      description: Filter by priority level
+      schema:
+        $ref: '#/components/schemas/PriorityEnum'
+
+    AssignedToFilter:
+      name: assignedToUserId
+      in: query
+      description: Filter by assigned staff member ID
+      schema:
+        type: integer
+        format: int64
+
+    RequesterFilter:
+      name: requesterUserId
+      in: query
+      description: Filter by requester user ID
+      schema:
+        type: integer
+        format: int64
+
+    DateFromFilter:
+      name: dateFrom
+      in: query
+      description: Filter requests registered from this date (inclusive)
+      schema:
+        type: string
+        format: date
+        example: "2026-01-01"
+
+    DateToFilter:
+      name: dateTo
+      in: query
+      description: Filter requests registered until this date (inclusive)
+      schema:
+        type: string
+        format: date
+        example: "2026-03-31"
+
+    PageParam:
+      name: page
+      in: query
+      description: Page number (zero-based)
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+    SizeParam:
+      name: size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+
+    SortParam:
+      name: sort
+      in: query
+      description: "Sort field and direction (e.g., registrationDateTime,desc)"
+      schema:
+        type: string
+        default: "registrationDateTime,desc"
+
+  responses:
+    BadRequest:
+      description: Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 400
+            error: "Bad Request"
+            message: "The request description is required."
+            timestamp: "2026-03-01T10:30:00Z"
+
+    Unauthorized:
+      description: Not authenticated or JWT token is invalid/expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 401
+            error: "Unauthorized"
+            message: "Invalid or expired JWT token."
+            timestamp: "2026-03-01T10:30:00Z"
+
+    Forbidden:
+      description: Insufficient permissions for this operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 403
+            error: "Forbidden"
+            message: "You do not have permission to perform this operation. Required role: STAFF."
+            timestamp: "2026-03-01T10:30:00Z"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 404
+            error: "Not Found"
+            message: "Request with ID 999 not found."
+            timestamp: "2026-03-01T10:30:00Z"
+
+  schemas:
+
+    # ── Enumerations ──
+
+    RoleEnum:
+      type: string
+      enum: [ADMIN, STAFF, STUDENT]
+      description: System roles
+
+    RequestStatusEnum:
+      type: string
+      enum: [REGISTERED, CLASSIFIED, IN_PROGRESS, ATTENDED, CLOSED, CANCELLED, REJECTED]
+      description: Request lifecycle statuses (including terminal cancellation and rejection states)
+
+    PriorityEnum:
+      type: string
+      enum: [HIGH, MEDIUM, LOW]
+      description: Priority levels
+
+    ConditionTypeEnum:
+      type: string
+      enum: [REQUEST_TYPE, IMPACT_LEVEL, DEADLINE, REQUEST_TYPE_AND_DEADLINE]
+      description: Types of conditions evaluated by business rules
+
+    # ── Authentication ──
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    RegisterRequest:
+      type: object
+      required: [username, email, password, fullName, identification]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: "jperez"
+        email:
+          type: string
+          format: email
+          example: "jperez@uniquindio.edu.co"
+        password:
+          type: string
+          format: password
+          minLength: 8
+        fullName:
+          type: string
+          maxLength: 150
+          example: "Juan Carlos Pérez López"
+        identification:
+          type: string
+          maxLength: 20
+          example: "1094123456"
+          description: National ID or student code
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+          description: Only ADMIN can assign roles other than STUDENT.
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Bearer Token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        tokenType:
+          type: string
+          default: "Bearer"
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+          example: 86400
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    # ── Users ──
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: "jperez"
+        email:
+          type: string
+          example: "jperez@uniquindio.edu.co"
+        fullName:
+          type: string
+          example: "Juan Carlos Pérez López"
+        identification:
+          type: string
+          example: "1094123456"
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        active:
+          type: boolean
+          example: true
+
+    UpdateUserBody:
+      type: object
+      properties:
+        fullName:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        active:
+          type: boolean
+
+    PagedUserResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+        pageSize:
+          type: integer
+
+    # ── Requests ──
+
+    CreateRequestBody:
+      type: object
+      required: [requestTypeId, originChannelId, description]
+      properties:
+        requestTypeId:
+          type: integer
+          format: int64
+          description: ID of the request type from the catalog
+        originChannelId:
+          type: integer
+          format: int64
+          description: ID of the origin channel (in-person, email, phone, etc.)
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Detailed description of the academic request
+        deadline:
+          type: string
+          format: date
+          nullable: true
+          description: Optional deadline associated with the request (used for prioritization)
+
+    ClassifyRequestBody:
+      type: object
+      required: [requestTypeId]
+      properties:
+        requestTypeId:
+          type: integer
+          format: int64
+          description: New request type assigned after classification
+        observations:
+          type: string
+          maxLength: 1000
+          description: Optional observations about the classification decision
+
+    PrioritizeRequestBody:
+      type: object
+      required: [priority, justification]
+      properties:
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        justification:
+          type: string
+          minLength: 5
+          maxLength: 1000
+          description: Mandatory justification for the assigned priority
+
+    AssignRequestBody:
+      type: object
+      required: [assignedToUserId]
+      properties:
+        assignedToUserId:
+          type: integer
+          format: int64
+          description: ID of the active STAFF user to assign as responsible
+        observations:
+          type: string
+          maxLength: 1000
+          description: Optional observations about the assignment
+
+    AttendRequestBody:
+      type: object
+      required: [observations]
+      properties:
+        observations:
+          type: string
+          minLength: 5
+          maxLength: 2000
+          description: Actions taken and resolution details
+
+    CloseRequestBody:
+      type: object
+      required: [closingObservation]
+      properties:
+        closingObservation:
+          type: string
+          minLength: 5
+          maxLength: 2000
+          description: Mandatory closing observation
+
+    CancelRequestBody:
+      type: object
+      required: [cancellationReason]
+      properties:
+        cancellationReason:
+          type: string
+          minLength: 5
+          maxLength: 2000
+          description: Mandatory reason provided by the user for cancellation
+
+    RejectRequestBody:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          minLength: 5
+          maxLength: 2000
+          description: Mandatory justified reason provided by the administration
+
+    RequestResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 42
+        description:
+          type: string
+        registrationDateTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/RequestStatusEnum'
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+          nullable: true
+        priorityJustification:
+          type: string
+          nullable: true
+        closingObservation:
+          type: string
+          nullable: true
+          description: Present when the request reaches `CLOSED`
+        cancellationReason:
+          type: string
+          nullable: true
+          description: Present when the request reaches `CANCELLED`
+        rejectionReason:
+          type: string
+          nullable: true
+          description: Present when the request reaches `REJECTED`
+        deadline:
+          type: string
+          format: date
+          nullable: true
+        aiSuggested:
+          type: boolean
+          description: Whether the classification/priority was suggested by AI
+        requestType:
+          $ref: '#/components/schemas/RequestTypeResponse'
+        originChannel:
+          $ref: '#/components/schemas/OriginChannelResponse'
+        requester:
+          $ref: '#/components/schemas/UserResponse'
+        assignedTo:
+          $ref: '#/components/schemas/UserResponse'
+          nullable: true
+
+    RequestDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/RequestResponse'
+        - type: object
+          properties:
+            history:
+              type: array
+              items:
+                $ref: '#/components/schemas/HistoryEntryResponse'
+
+    PagedRequestResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+        pageSize:
+          type: integer
+
+    # ── History ──
+
+    HistoryEntryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        action:
+          type: string
+          description: "Action type: REGISTERED, CLASSIFIED, PRIORITIZED, ASSIGNED, ATTENDED, CLOSED, CANCELLED, REJECTED, INTERNAL_NOTE"
+          example: "CLASSIFIED"
+        observations:
+          type: string
+          nullable: true
+          example: "Reclassified as a seat request."
+        timestamp:
+          type: string
+          format: date-time
+        performedBy:
+          $ref: '#/components/schemas/UserResponse'
+
+    AddHistoryNoteBody:
+      type: object
+      required: [action, observations]
+      properties:
+        action:
+          type: string
+          default: "INTERNAL_NOTE"
+          description: Action label for the note. Defaults to INTERNAL_NOTE.
+        observations:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    # ── Catalogs ──
+
+    RequestTypeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Course Registration"
+        description:
+          type: string
+          example: "Request to enroll in courses for the current academic period."
+        active:
+          type: boolean
+
+    CreateRequestTypeBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+
+    OriginChannelResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Email"
+        active:
+          type: boolean
+
+    CreateOriginChannelBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+
+    # ── Business Rules ──
+
+    BusinessRuleResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "Urgent seat requests"
+        description:
+          type: string
+          example: "Seat requests with a deadline under 5 days receive HIGH priority."
+        conditionType:
+          $ref: '#/components/schemas/ConditionTypeEnum'
+        conditionValue:
+          type: string
+          description: Condition parameters in JSON format
+          example: "{\"requestTypeId\": 4, \"maxDaysUntilDeadline\": 5}"
+        resultingPriority:
+          $ref: '#/components/schemas/PriorityEnum'
+        requestType:
+          $ref: '#/components/schemas/RequestTypeResponse'
+          nullable: true
+          description: The request type this rule applies to, if any
+        active:
+          type: boolean
+
+    CreateBusinessRuleBody:
+      type: object
+      required: [name, conditionType, conditionValue, resultingPriority]
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+        conditionType:
+          $ref: '#/components/schemas/ConditionTypeEnum'
+        conditionValue:
+          type: string
+          description: Condition parameters in JSON format
+        resultingPriority:
+          $ref: '#/components/schemas/PriorityEnum'
+        requestTypeId:
+          type: integer
+          format: int64
+          nullable: true
+          description: Optional ID of the request type this rule applies to
+        active:
+          type: boolean
+          default: true
+
+    # ── AI ──
+
+    AiClassificationRequest:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Descriptive text of the request to analyze
+
+    AiClassificationResponse:
+      type: object
+      properties:
+        suggestedRequestType:
+          type: string
+          description: Name of the suggested request type
+        suggestedRequestTypeId:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID of the suggested request type (if it exists in the catalog)
+        suggestedPriority:
+          $ref: '#/components/schemas/PriorityEnum'
+        confidence:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: Confidence level of the suggestion (0.0 to 1.0)
+        reasoning:
+          type: string
+          description: Textual justification generated by the LLM
+
+    AiSummaryResponse:
+      type: object
+      properties:
+        requestId:
+          type: integer
+          format: int64
+        summary:
+          type: string
+          description: Textual summary of the request status and history
+        generatedAt:
+          type: string
+          format: date-time
+
+    # ── Reports ──
+
+    DashboardMetrics:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+          format: int64
+        requestsByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            REGISTERED: 15
+            CLASSIFIED: 8
+            IN_PROGRESS: 12
+            ATTENDED: 5
+            CLOSED: 60
+            CANCELLED: 4
+            REJECTED: 2
+        requestsByType:
+          type: object
+          additionalProperties:
+            type: integer
+        requestsByPriority:
+          type: object
+          additionalProperties:
+            type: integer
+        averageResolutionTimeHours:
+          type: number
+          format: double
+          description: Average time from registration to closure in hours
+        topResponsibles:
+          type: array
+          items:
+            type: object
+            properties:
+              user:
+                $ref: '#/components/schemas/UserResponse'
+              resolvedCount:
+                type: integer
+
+    # ── Generic Error ──
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "The description field is required."
+        timestamp:
+          type: string
+          format: date-time
+        fieldErrors:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          description: Per-field validation errors (when applicable)
