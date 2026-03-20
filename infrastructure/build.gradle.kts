@@ -22,6 +22,7 @@ dependencyManagement {
 
 dependencies {
     implementation(project(":application"))
+    implementation(project(":domain"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
