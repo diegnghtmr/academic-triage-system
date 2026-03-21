@@ -1,6 +1,6 @@
 package co.edu.uniquindio.triage.domain.enums;
 
-public enum RoleEnum {
+public enum Role {
     ADMIN,
     STAFF,
     STUDENT

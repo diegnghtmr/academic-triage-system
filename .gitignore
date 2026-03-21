@@ -28,7 +28,7 @@ Thumbs.db
 logs/
 
 # Application
-out/
+/out/
 target/
 bin/
 

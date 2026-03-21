@@ -5,7 +5,7 @@ import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
 import java.util.Objects;
 
 public class OriginChannel {
-    private OriginChannelId id;
+    private final OriginChannelId id;
     private String name;
     private boolean active;
 
@@ -28,10 +28,6 @@ public class OriginChannel {
 
     public OriginChannelId getId() {
         return id;
-    }
-
-    public void setId(OriginChannelId id) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
     }
 
     public String getName() {

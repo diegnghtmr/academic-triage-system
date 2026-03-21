@@ -1,11 +1,13 @@
 package co.edu.uniquindio.triage.domain.enums;
 
-public enum RequestStatusEnum {
+public enum HistoryAction {
     REGISTERED,
     CLASSIFIED,
-    IN_PROGRESS,
+    PRIORITIZED,
+    ASSIGNED,
     ATTENDED,
     CLOSED,
     CANCELLED,
-    REJECTED
+    REJECTED,
+    INTERNAL_NOTE
 }

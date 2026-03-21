@@ -1,13 +1,23 @@
 package co.edu.uniquindio.triage.domain.exception;
 
-import co.edu.uniquindio.triage.domain.enums.RequestStatusEnum;
+import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 
 public class InvalidStateTransitionException extends DomainException {
-    public InvalidStateTransitionException(RequestStatusEnum from, RequestStatusEnum to) {
-        super(String.format("Transición de estado inválida: de %s a %s", from, to));
+
+    private final RequestStatus fromStatus;
+    private final RequestStatus toStatus;
+
+    public InvalidStateTransitionException(RequestStatus fromStatus, RequestStatus toStatus) {
+        super(String.format("Transición de estado inválida: de %s a %s", fromStatus, toStatus));
+        this.fromStatus = fromStatus;
+        this.toStatus = toStatus;
     }
 
-    public InvalidStateTransitionException(String message) {
-        super(message);
+public RequestStatus getFromStatus() {
+        return fromStatus;
+    }
+
+    public RequestStatus getToStatus() {
+        return toStatus;
     }
 }

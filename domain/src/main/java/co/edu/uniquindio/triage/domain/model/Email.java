@@ -1,13 +1,13 @@
-package co.edu.uniquindio.triage.domain.model.vo;
+package co.edu.uniquindio.triage.domain.model;
 
 import java.util.regex.Pattern;
 
-public record UserEmail(String value) {
+public record Email(String value) {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[\\w.-]+@[\\w.-]+\\.\\w{2,}$"
     );
 
-    public UserEmail {
+    public Email {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("El email no puede ser null o vacío");
         }
@@ -18,7 +18,7 @@ public record UserEmail(String value) {
         value = trimmed;
     }
 
-    public static UserEmail of(String value) {
-        return new UserEmail(value);
+    public static Email of(String value) {
+        return new Email(value);
     }
 }

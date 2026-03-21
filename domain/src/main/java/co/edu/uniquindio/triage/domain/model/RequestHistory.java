@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.domain.model;
 
+import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.model.id.RequestHistoryId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
@@ -8,32 +9,21 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class RequestHistory {
-    private RequestHistoryId id;
-    private String action;
-    private String observations;
-    private LocalDateTime timestamp;
-    private RequestId requestId;
-    private UserId performedById;
+    private final RequestHistoryId id;
+    private final HistoryAction action;
+    private final String observations;
+    private final LocalDateTime timestamp;
+    private final RequestId requestId;
+    private final UserId performedById;
 
-    public RequestHistory(RequestHistoryId id, String action, String observations,
-                          RequestId requestId, UserId performedById) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
-        this.action = validateAction(action);
+    public RequestHistory(RequestHistoryId id, HistoryAction action, String observations,
+                          LocalDateTime timestamp, RequestId requestId, UserId performedById) {
+        this.id = id;
+        this.action = Objects.requireNonNull(action, "El action no puede ser null");
         this.observations = validateObservations(observations);
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = Objects.requireNonNull(timestamp, "El timestamp no puede ser null");
         this.requestId = Objects.requireNonNull(requestId, "El requestId no puede ser null");
         this.performedById = Objects.requireNonNull(performedById, "El performedById no puede ser null");
-    }
-
-    private String validateAction(String action) {
-        if (action == null || action.isBlank()) {
-            throw new IllegalArgumentException("La acción no puede ser null o vacía");
-        }
-        String trimmed = action.trim();
-        if (trimmed.length() > 50) {
-            throw new IllegalArgumentException("La acción no puede tener más de 50 caracteres");
-        }
-        return trimmed;
     }
 
     private String validateObservations(String observations) {
@@ -50,11 +40,7 @@ public class RequestHistory {
         return id;
     }
 
-    public void setId(RequestHistoryId id) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
-    }
-
-    public String getAction() {
+    public HistoryAction getAction() {
         return action;
     }
 
@@ -91,7 +77,7 @@ public class RequestHistory {
     public String toString() {
         return "RequestHistory{" +
                 "id=" + id +
-                ", action='" + action + '\'' +
+                ", action=" + action +
                 ", timestamp=" + timestamp +
                 ", requestId=" + requestId +
                 '}';

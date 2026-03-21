@@ -1,44 +1,33 @@
 package co.edu.uniquindio.triage.domain.model;
 
-import co.edu.uniquindio.triage.domain.enums.RoleEnum;
+import co.edu.uniquindio.triage.domain.enums.Role;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
-import co.edu.uniquindio.triage.domain.model.vo.UserEmail;
 
 import java.util.Objects;
 
 public class User {
-    private UserId id;
-    private String username;
-    private UserEmail email;
-    private String identification;
-    private String firstName;
-    private String lastName;
-    private RoleEnum role;
+    private final UserId id;
+    private final String identification;
+    private final String firstName;
+    private final String lastName;
+    private Email email;
+    private Role role;
     private boolean active;
-    private String password;
 
-    public User(UserId id, String username, UserEmail email, String identification,
-                String firstName, String lastName, RoleEnum role, boolean active, String password) {
+    public User(UserId id, String identification, String firstName, String lastName,
+                Email email, Role role, boolean active) {
         this.id = Objects.requireNonNull(id, "El id no puede ser null");
-        this.username = validateUsername(username);
-        this.email = Objects.requireNonNull(email, "El email no puede ser null");
         this.identification = validateIdentification(identification);
         this.firstName = validateName(firstName, "El nombre");
         this.lastName = validateName(lastName, "El apellido");
+        this.email = Objects.requireNonNull(email, "El email no puede ser null");
         this.role = Objects.requireNonNull(role, "El rol no puede ser null");
         this.active = active;
-        this.password = validatePassword(password);
     }
 
-    private String validateUsername(String username) {
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("El username no puede ser null o vacío");
-        }
-        String trimmed = username.trim();
-        if (trimmed.length() < 3 || trimmed.length() > 50) {
-            throw new IllegalArgumentException("El username debe tener entre 3 y 50 caracteres");
-        }
-        return trimmed;
+    public static User reconstitute(UserId id, String identification, String firstName, String lastName,
+                             Email email, Role role, boolean active) {
+        return new User(id, identification, firstName, lastName, email, role, active);
     }
 
     private String validateIdentification(String identification) {
@@ -63,29 +52,11 @@ public class User {
         return trimmed;
     }
 
-    private String validatePassword(String password) {
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("La contraseña no puede ser null o vacía");
-        }
-        if (password.length() < 8) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres");
-        }
-        return password;
-    }
-
     public UserId getId() {
         return id;
     }
 
-    public void setId(UserId id) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public UserEmail getEmail() {
+    public Email getEmail() {
         return email;
     }
 
@@ -105,7 +76,7 @@ public class User {
         return firstName + " " + lastName;
     }
 
-    public RoleEnum getRole() {
+    public Role getRole() {
         return role;
     }
 
@@ -121,24 +92,24 @@ public class User {
         this.active = true;
     }
 
-    public String getPassword() {
-        return password;
+    public void updateRole(Role newRole) {
+        this.role = Objects.requireNonNull(newRole, "El rol no puede ser null");
     }
 
-    public void updatePassword(String newPassword) {
-        this.password = validatePassword(newPassword);
+    public void updateEmail(Email newEmail) {
+        this.email = Objects.requireNonNull(newEmail, "El email no puede ser null");
     }
 
     public boolean isAdmin() {
-        return role == RoleEnum.ADMIN;
+        return role == Role.ADMIN;
     }
 
     public boolean isStaff() {
-        return role == RoleEnum.STAFF;
+        return role == Role.STAFF;
     }
 
     public boolean isStudent() {
-        return role == RoleEnum.STUDENT;
+        return role == Role.STUDENT;
     }
 
     public boolean canCancelRequest(UserId applicantId) {
@@ -170,7 +141,7 @@ public class User {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", username='" + username + '\'' +
+                ", identification='" + identification + '\'' +
                 ", email=" + email +
                 ", role=" + role +
                 ", active=" + active +

@@ -1,13 +1,23 @@
 package co.edu.uniquindio.triage.domain.exception;
 
-import co.edu.uniquindio.triage.domain.enums.RoleEnum;
+import co.edu.uniquindio.triage.domain.enums.Role;
 
 public class UnauthorizedOperationException extends DomainException {
-    public UnauthorizedOperationException(RoleEnum role, String operation) {
+
+    private final Role role;
+    private final String operation;
+
+    public UnauthorizedOperationException(Role role, String operation) {
         super(String.format("El rol %s no tiene permisos para realizar la operación: %s", role, operation));
+        this.role = role;
+        this.operation = operation;
     }
 
-    public UnauthorizedOperationException(String message) {
-        super(message);
+public Role getRole() {
+        return role;
+    }
+
+    public String getOperation() {
+        return operation;
     }
 }

@@ -1,25 +1,25 @@
 package co.edu.uniquindio.triage.domain.model;
 
-import co.edu.uniquindio.triage.domain.enums.ConditionTypeEnum;
-import co.edu.uniquindio.triage.domain.enums.PriorityEnum;
+import co.edu.uniquindio.triage.domain.enums.ConditionType;
+import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 
 import java.util.Objects;
 
 public class BusinessRule {
-    private BusinessRuleId id;
+    private final BusinessRuleId id;
     private String name;
     private String description;
-    private ConditionTypeEnum conditionType;
-    private String conditionValue;
-    private PriorityEnum resultingPriority;
+    private final ConditionType conditionType;
+    private final String conditionValue;
+    private final Priority resultingPriority;
     private boolean active;
-    private RequestTypeId requestTypeId;
+    private final RequestTypeId requestTypeId;
 
     public BusinessRule(BusinessRuleId id, String name, String description,
-                         ConditionTypeEnum conditionType, String conditionValue,
-                         PriorityEnum resultingPriority, boolean active, RequestTypeId requestTypeId) {
+                        ConditionType conditionType, String conditionValue,
+                        Priority resultingPriority, boolean active, RequestTypeId requestTypeId) {
         this.id = Objects.requireNonNull(id, "El id no puede ser null");
         this.name = validateName(name);
         this.description = validateDescription(description);
@@ -62,10 +62,6 @@ public class BusinessRule {
         return id;
     }
 
-    public void setId(BusinessRuleId id) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
-    }
-
     public String getName() {
         return name;
     }
@@ -82,7 +78,7 @@ public class BusinessRule {
         this.description = validateDescription(description);
     }
 
-    public ConditionTypeEnum getConditionType() {
+    public ConditionType getConditionType() {
         return conditionType;
     }
 
@@ -90,7 +86,7 @@ public class BusinessRule {
         return conditionValue;
     }
 
-    public PriorityEnum getResultingPriority() {
+    public Priority getResultingPriority() {
         return resultingPriority;
     }
 
@@ -110,8 +106,18 @@ public class BusinessRule {
         return requestTypeId;
     }
 
-    public void setRequestTypeId(RequestTypeId requestTypeId) {
-        this.requestTypeId = requestTypeId;
+    /**
+     * Evaluates whether this rule's condition matches the given request.
+     */
+    public boolean matches(AcademicRequest request) {
+        Objects.requireNonNull(request, "La solicitud no puede ser null");
+        if (!this.active) {
+            return false;
+        }
+        if (this.requestTypeId != null && !this.requestTypeId.equals(request.getRequestTypeId())) {
+            return false;
+        }
+        return true;
     }
 
     @Override

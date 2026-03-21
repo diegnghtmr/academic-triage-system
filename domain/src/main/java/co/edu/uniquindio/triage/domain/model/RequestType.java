@@ -5,7 +5,7 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import java.util.Objects;
 
 public class RequestType {
-    private RequestTypeId id;
+    private final RequestTypeId id;
     private String name;
     private String description;
     private boolean active;
@@ -37,10 +37,6 @@ public class RequestType {
 
     public RequestTypeId getId() {
         return id;
-    }
-
-    public void setId(RequestTypeId id) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
     }
 
     public String getName() {
