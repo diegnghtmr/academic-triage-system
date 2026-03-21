@@ -13,7 +13,7 @@ public class UnauthorizedOperationException extends DomainException {
         this.operation = operation;
     }
 
-public Role getRole() {
+    public Role getRole() {
         return role;
     }
 

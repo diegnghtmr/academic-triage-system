@@ -60,6 +60,12 @@ public class AcademicRequestJpaEntity {
     @Column(name = "closing_observation", length = 500)
     private String closingObservation;
 
+    @Column(name = "cancellation_reason", length = 2000)
+    private String cancellationReason;
+
+    @Column(name = "attendance_observation", length = 2000)
+    private String attendanceObservation;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

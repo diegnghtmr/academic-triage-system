@@ -6,13 +6,13 @@ CREATE TABLE users (
     identification VARCHAR(50) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    rol VARCHAR(20) NOT NULL,
+    role VARCHAR(20) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     password VARCHAR(255) NOT NULL,
-    CONSTRAINT chk_users_rol CHECK (rol IN ('ADMIN', 'STAFF', 'STUDENT'))
+    CONSTRAINT chk_users_role CHECK (role IN ('ADMIN', 'STAFF', 'STUDENT'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_rol ON users(rol);
+CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_active ON users(active);

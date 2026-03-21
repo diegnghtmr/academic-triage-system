@@ -5,6 +5,8 @@ import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 public class BusinessRule {
@@ -114,10 +116,35 @@ public class BusinessRule {
         if (!this.active) {
             return false;
         }
-        if (this.requestTypeId != null && !this.requestTypeId.equals(request.getRequestTypeId())) {
+
+        return switch (this.conditionType) {
+            case REQUEST_TYPE -> matchesRequestType(request);
+            case DEADLINE -> matchesDeadline(request);
+            case IMPACT_LEVEL -> matchesImpactLevel(request);
+            case REQUEST_TYPE_AND_DEADLINE -> matchesRequestType(request) && matchesDeadline(request);
+        };
+    }
+
+    private boolean matchesRequestType(AcademicRequest request) {
+        if (this.requestTypeId == null) {
+            return true;
+        }
+        return this.requestTypeId.equals(request.getRequestTypeId());
+    }
+
+    private boolean matchesDeadline(AcademicRequest request) {
+        if (request.getDeadline() == null) {
             return false;
         }
-        return true;
+        long daysUntilDeadline = ChronoUnit.DAYS.between(LocalDate.now(), request.getDeadline());
+        long thresholdDays = Long.parseLong(this.conditionValue);
+        return daysUntilDeadline >= 0 && daysUntilDeadline <= thresholdDays;
+    }
+
+    private boolean matchesImpactLevel(AcademicRequest request) {
+        return this.conditionValue.equalsIgnoreCase(
+                request.getPriority() != null ? request.getPriority().name() : ""
+        );
     }
 
     @Override

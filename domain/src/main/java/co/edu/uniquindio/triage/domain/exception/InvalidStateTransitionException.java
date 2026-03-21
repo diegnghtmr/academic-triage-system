@@ -13,7 +13,7 @@ public class InvalidStateTransitionException extends DomainException {
         this.toStatus = toStatus;
     }
 
-public RequestStatus getFromStatus() {
+    public RequestStatus getFromStatus() {
         return fromStatus;
     }
 
