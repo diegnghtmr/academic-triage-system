@@ -12,6 +12,8 @@ val springdocVersion: String by project
 val flywayVersion: String by project
 val archunitVersion: String by project
 val testcontainersVersion: String by project
+val lombokMapstructBindingVersion: String by project
+val wiremockVersion: String by project
 
 dependencyManagement {
     imports {
@@ -22,6 +24,7 @@ dependencyManagement {
 
 dependencies {
     implementation(project(":application"))
+    implementation(project(":domain"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -49,7 +52,7 @@ dependencies {
     // Lombok (infrastructure ONLY)
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
-    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:$lombokMapstructBindingVersion")
 
     // Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
@@ -60,5 +63,5 @@ dependencies {
     testImplementation("org.testcontainers:mariadb:$testcontainersVersion")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
-    testImplementation("org.wiremock:wiremock-standalone:3.10.0")
+    testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
 }
