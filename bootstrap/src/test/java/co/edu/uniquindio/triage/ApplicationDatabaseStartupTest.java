@@ -12,7 +12,15 @@ import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        classes = Application.class,
+        properties = {
+                "app.jwt.secret=12345678901234567890123456789012",
+                "app.jwt.expiration-ms=86400000",
+                "spring.ai.openai.api-key=test-key"
+        }
+)
 @ActiveProfiles("test")
 class ApplicationDatabaseStartupTest {
 

@@ -41,7 +41,8 @@ public class RegisterService implements RegisterUseCase {
         var passwordHash = new PasswordHash(passwordEncoderPort.encode(command.rawPassword()));
         var user = User.registerNew(
                 command.username(),
-                command.fullName(),
+                command.firstName(),
+                command.lastName(),
                 passwordHash,
                 command.identification(),
                 command.email(),

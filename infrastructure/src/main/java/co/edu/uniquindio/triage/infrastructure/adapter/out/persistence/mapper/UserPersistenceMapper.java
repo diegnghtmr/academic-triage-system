@@ -15,7 +15,8 @@ public class UserPersistenceMapper {
         return User.reconstitute(
                 new UserId(entity.getId()),
                 new Username(entity.getUsername()),
-                entity.getFullName(),
+                entity.getFirstName(),
+                entity.getLastName(),
                 new PasswordHash(entity.getPasswordHash()),
                 new Identification(entity.getIdentification()),
                 new Email(entity.getEmail()),
@@ -30,7 +31,8 @@ public class UserPersistenceMapper {
                 user.getUsername().value(),
                 user.getEmail().value(),
                 user.getIdentification().value(),
-                user.getFullName(),
+                user.getFirstName(),
+                user.getLastName(),
                 user.getRole().name(),
                 user.isActive(),
                 user.getPasswordHash().value()

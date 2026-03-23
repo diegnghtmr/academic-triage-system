@@ -24,8 +24,11 @@ public class UserJpaEntity {
     @Column(unique = true, length = 20, nullable = false)
     private String identification;
 
-    @Column(name = "full_name", length = 150, nullable = false)
-    private String fullName;
+    @Column(name = "first_name", length = 75, nullable = false)
+    private String firstName;
+
+    @Column(name = "last_name", length = 75, nullable = false)
+    private String lastName;
 
     @Column(name = "role", length = 20, nullable = false)
     private String role;
@@ -43,7 +46,8 @@ public class UserJpaEntity {
                          String username,
                          String email,
                          String identification,
-                         String fullName,
+                         String firstName,
+                         String lastName,
                          String role,
                          boolean active,
                          String passwordHash) {
@@ -51,7 +55,8 @@ public class UserJpaEntity {
         this.username = username;
         this.email = email;
         this.identification = identification;
-        this.fullName = fullName;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.role = role;
         this.active = active;
         this.passwordHash = passwordHash;
@@ -89,12 +94,20 @@ public class UserJpaEntity {
         this.identification = identification;
     }
 
-    public String getFullName() {
-        return fullName;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getRole() {

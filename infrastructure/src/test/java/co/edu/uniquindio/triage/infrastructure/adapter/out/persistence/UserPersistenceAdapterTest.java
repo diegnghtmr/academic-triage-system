@@ -74,7 +74,8 @@ class UserPersistenceAdapterTest {
         assertThat(saved.getId()).isNotNull();
         assertThat(loadedByUsername).isPresent();
         assertThat(loadedByUsername.orElseThrow().getId()).isEqualTo(saved.getId());
-        assertThat(loadedByUsername.orElseThrow().getFullName()).isEqualTo("Juan Pérez");
+        assertThat(loadedByUsername.orElseThrow().getFirstName()).isEqualTo("Juan");
+        assertThat(loadedByUsername.orElseThrow().getLastName()).isEqualTo("Pérez");
         assertThat(loadedByUsername.orElseThrow().getPasswordHash().value()).isEqualTo("hashed-password");
         assertThat(loadedByUsername.orElseThrow().getEmail().value()).isEqualTo("jperez@uniquindio.edu.co");
         assertThat(loadedByUsername.orElseThrow().getIdentification().value()).isEqualTo("1094123456");
@@ -116,7 +117,8 @@ class UserPersistenceAdapterTest {
     private User newUser(String username, String email, String identification, Role role) {
         return User.registerNew(
                 new Username(username),
-                "Juan Pérez",
+                "Juan",
+                "Pérez",
                 new PasswordHash("hashed-password"),
                 new Identification(identification),
                 new Email(email),
@@ -130,7 +132,8 @@ class UserPersistenceAdapterTest {
                 username,
                 email,
                 identification,
-                "Usuario Base",
+                "Usuario",
+                "Base",
                 Role.STUDENT.name(),
                 true,
                 "hashed-password"

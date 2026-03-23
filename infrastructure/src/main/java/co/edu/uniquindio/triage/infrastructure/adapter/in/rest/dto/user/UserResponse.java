@@ -6,7 +6,8 @@ public record UserResponse(
         Long id,
         String username,
         String email,
-        String fullName,
+        String firstName,
+        String lastName,
         String identification,
         Role role,
         boolean active

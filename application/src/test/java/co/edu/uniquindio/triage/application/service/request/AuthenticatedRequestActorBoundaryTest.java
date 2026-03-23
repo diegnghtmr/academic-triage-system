@@ -59,7 +59,8 @@ class AuthenticatedRequestActorBoundaryTest {
         return User.reconstitute(
                 new UserId(id),
                 new Username(username),
-                "Usuario Persistido",
+                "Usuario",
+                "Persistido",
                 new PasswordHash("encoded-password"),
                 new Identification("ID-" + id),
                 new Email(username + "@uniquindio.edu.co"),

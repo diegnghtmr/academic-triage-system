@@ -44,7 +44,8 @@ class JwtTokenAdapterTest {
         return User.reconstitute(
                 new UserId(1L),
                 new Username("jperez"),
-                "Juan Pérez",
+                "Juan",
+                "Pérez",
                 new PasswordHash("hash-value"),
                 new Identification("1094123456"),
                 new Email("jperez@uniquindio.edu.co"),

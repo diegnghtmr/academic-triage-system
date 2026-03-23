@@ -11,13 +11,14 @@ public record RegisterCommand(
         Username username,
         Email email,
         String rawPassword,
-        String fullName,
+        String firstName,
+        String lastName,
         Identification identification,
         Role requestedRole
 ) {
 
     private static final int MIN_PASSWORD_LENGTH = 8;
-    private static final int MAX_FULL_NAME_LENGTH = 150;
+    private static final int MAX_NAME_LENGTH = 75;
 
     public RegisterCommand {
         Objects.requireNonNull(username, "El username no puede ser null");
@@ -30,13 +31,19 @@ public record RegisterCommand(
         if (rawPassword.length() < MIN_PASSWORD_LENGTH) {
             throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres");
         }
-        if (fullName == null || fullName.isBlank()) {
-            throw new IllegalArgumentException("El nombre completo no puede ser null o vacío");
-        }
+        
+        firstName = validateName(firstName, "nombre");
+        lastName = validateName(lastName, "apellido");
+    }
 
-        fullName = fullName.trim();
-        if (fullName.length() > MAX_FULL_NAME_LENGTH) {
-            throw new IllegalArgumentException("El nombre completo no puede tener más de 150 caracteres");
+    private String validateName(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("El " + fieldName + " no puede ser null o vacío");
         }
+        var trimmed = value.trim();
+        if (trimmed.length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException("El " + fieldName + " no puede tener más de 75 caracteres");
+        }
+        return trimmed;
     }
 }

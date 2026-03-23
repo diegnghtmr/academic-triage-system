@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(
-        classes = DocsProfileTestApplication.class,
+        classes = ApplicationDocsDevProfileAccessTest.DocsProfileTestApplication.class,
         properties = {
                 "app.jwt.secret=12345678901234567890123456789012",
                 "app.jwt.expiration-ms=86400000",
@@ -40,10 +40,20 @@ class ApplicationDocsDevProfileAccessTest {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().is3xxRedirection());
     }
+
+    @SpringBootConfiguration
+    @EnableAutoConfiguration(exclude = {
+            DataSourceAutoConfiguration.class,
+            HibernateJpaAutoConfiguration.class,
+            FlywayAutoConfiguration.class
+    })
+    @Import(SecurityConfiguration.class)
+    static class DocsProfileTestApplication {
+    }
 }
 
 @SpringBootTest(
-        classes = DocsProfileTestApplication.class,
+        classes = ApplicationDocsDevProfileAccessTest.DocsProfileTestApplication.class,
         properties = {
                 "app.jwt.secret=12345678901234567890123456789012",
                 "app.jwt.expiration-ms=86400000",
@@ -67,12 +77,3 @@ class ApplicationDocsTestProfileAccessTest {
     }
 }
 
-@SpringBootConfiguration
-@EnableAutoConfiguration(exclude = {
-        DataSourceAutoConfiguration.class,
-        HibernateJpaAutoConfiguration.class,
-        FlywayAutoConfiguration.class
-})
-@Import(SecurityConfiguration.class)
-class DocsProfileTestApplication {
-}

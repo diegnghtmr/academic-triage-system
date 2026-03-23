@@ -10,7 +10,8 @@ public class UserRestMapper {
                 user.getId() != null ? user.getId().value() : null,
                 user.getUsername().value(),
                 user.getEmail().value(),
-                user.getFullName(),
+                user.getFirstName(),
+                user.getLastName(),
                 user.getIdentification().value(),
                 user.getRole(),
                 user.isActive()

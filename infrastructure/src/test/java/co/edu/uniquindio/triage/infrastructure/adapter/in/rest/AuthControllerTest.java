@@ -94,7 +94,8 @@ class AuthControllerTest {
                                   "username": "jperez",
                                   "email": "jperez@uniquindio.edu.co",
                                   "password": "MyPassword123",
-                                  "fullName": "Juan Pérez",
+                                  "firstName": "Juan",
+                                  "lastName": "Pérez",
                                   "identification": "1094123456",
                                   "role": "ADMIN"
                                 }
@@ -118,7 +119,8 @@ class AuthControllerTest {
                                   "username": "staff01",
                                   "email": "staff01@uniquindio.edu.co",
                                   "password": "MyPassword123",
-                                  "fullName": "Staff Uno",
+                                  "firstName": "Staff",
+                                  "lastName": "Uno",
                                   "identification": "20001",
                                   "role": "STAFF"
                                 }
@@ -145,7 +147,8 @@ class AuthControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.user.fullName").value("Juan Pérez"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.firstName").value("Juan"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.lastName").value("Pérez"));
     }
 
     @Test
@@ -176,7 +179,8 @@ class AuthControllerTest {
                                   "username": "jperez",
                                   "email": "jperez@uniquindio.edu.co",
                                   "password": "MyPassword123",
-                                  "fullName": "Juan Pérez",
+                                  "firstName": "Juan",
+                                  "lastName": "Pérez",
                                   "identification": "1094123456"
                                 }
                                 """))
@@ -205,7 +209,8 @@ class AuthControllerTest {
         return User.reconstitute(
                 new UserId(1L),
                 new Username("jperez"),
-                "Juan Pérez",
+                "Juan",
+                "Pérez",
                 new PasswordHash("hash-value"),
                 new Identification("1094123456"),
                 new Email("jperez@uniquindio.edu.co"),

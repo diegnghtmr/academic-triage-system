@@ -42,7 +42,8 @@ class RegisterServiceTest {
                 new Username("jperez"),
                 new Email("jperez@uniquindio.edu.co"),
                 "MyPassword123",
-                "Juan Pérez",
+                "Juan",
+                "Pérez",
                 new Identification("1094123456"),
                 Role.ADMIN
         );
@@ -60,7 +61,8 @@ class RegisterServiceTest {
                 new Username("staff01"),
                 new Email("staff01@uniquindio.edu.co"),
                 "MyPassword123",
-                "Staff Uno",
+                "Staff",
+                "Uno",
                 new Identification("20001"),
                 Role.STAFF
         );
@@ -81,7 +83,8 @@ class RegisterServiceTest {
                 new Username("jperez"),
                 new Email("otro@uniquindio.edu.co"),
                 "MyPassword123",
-                "Juan Duplicado",
+                "Juan",
+                "Duplicado",
                 new Identification("99999"),
                 null
         );
@@ -95,6 +98,7 @@ class RegisterServiceTest {
         return User.reconstitute(
                 new UserId(id),
                 new Username(username),
+                "Nombre",
                 "Persistido",
                 new PasswordHash("encoded-MyPassword123"),
                 new Identification(identification),
@@ -159,7 +163,8 @@ class RegisterServiceTest {
             var persisted = User.reconstitute(
                     new UserId(userId),
                     user.getUsername(),
-                    user.getFullName(),
+                    user.getFirstName(),
+                    user.getLastName(),
                     user.getPasswordHash(),
                     user.getIdentification(),
                     user.getEmail(),

@@ -25,7 +25,8 @@ public class AuthRestMapper {
                 new Username(request.username()),
                 new Email(request.email()),
                 request.password(),
-                request.fullName(),
+                request.firstName(),
+                request.lastName(),
                 new Identification(request.identification()),
                 request.role()
         );

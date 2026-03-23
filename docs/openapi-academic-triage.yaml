@@ -110,6 +110,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: "jperez"
+              email: "jperez@uniquindio.edu.co"
+              password: "MyPassword123"
+              firstName: "Juan Carlos"
+              lastName: "Pérez López"
+              identification: "1094123456"
       responses:
         '201':
           description: User created successfully
@@ -1425,7 +1432,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [username, email, password, fullName, identification]
+      required: [username, email, password, firstName, lastName, identification]
       properties:
         username:
           type: string
@@ -1440,10 +1447,14 @@ components:
           type: string
           format: password
           minLength: 8
-        fullName:
+        firstName:
           type: string
-          maxLength: 150
-          example: "Juan Carlos Pérez López"
+          maxLength: 75
+          example: "Juan Carlos"
+        lastName:
+          type: string
+          maxLength: 75
+          example: "Pérez López"
         identification:
           type: string
           maxLength: 20
@@ -1485,9 +1496,12 @@ components:
         email:
           type: string
           example: "jperez@uniquindio.edu.co"
-        fullName:
+        firstName:
           type: string
-          example: "Juan Carlos Pérez López"
+          example: "Juan Carlos"
+        lastName:
+          type: string
+          example: "Pérez López"
         identification:
           type: string
           example: "1094123456"
@@ -1500,9 +1514,12 @@ components:
     UpdateUserBody:
       type: object
       properties:
-        fullName:
+        firstName:
           type: string
-          maxLength: 150
+          maxLength: 75
+        lastName:
+          type: string
+          maxLength: 75
         email:
           type: string
           format: email

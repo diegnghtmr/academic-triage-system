@@ -9,18 +9,21 @@ import java.util.Objects;
 public class User {
     private final UserId id;
     private final Username username;
-    private final String fullName;
+    private final String firstName;
+    private final String lastName;
     private final PasswordHash passwordHash;
     private final Identification identification;
     private Email email;
     private Role role;
     private boolean active;
 
-    private User(UserId id, Username username, String fullName, PasswordHash passwordHash,
-                 Identification identification, Email email, Role role, boolean active) {
+    private User(UserId id, Username username, String firstName, String lastName,
+                 PasswordHash passwordHash, Identification identification,
+                 Email email, Role role, boolean active) {
         this.id = id;
         this.username = Objects.requireNonNull(username, "El username no puede ser null");
-        this.fullName = validateFullName(fullName);
+        this.firstName = validateName(firstName, "nombre");
+        this.lastName = validateName(lastName, "apellido");
         this.passwordHash = Objects.requireNonNull(passwordHash, "El password hash no puede ser null");
         this.identification = Objects.requireNonNull(identification, "La identificación no puede ser null");
         this.email = Objects.requireNonNull(email, "El email no puede ser null");
@@ -28,15 +31,17 @@ public class User {
         this.active = active;
     }
 
-    public static User registerNew(Username username, String fullName, PasswordHash passwordHash,
-                                   Identification identification, Email email, Role role) {
-        return new User(null, username, fullName, passwordHash, identification, email, role, true);
+    public static User registerNew(Username username, String firstName, String lastName,
+                                   PasswordHash passwordHash, Identification identification,
+                                   Email email, Role role) {
+        return new User(null, username, firstName, lastName, passwordHash, identification, email, role, true);
     }
 
-    public static User reconstitute(UserId id, Username username, String fullName, PasswordHash passwordHash,
-                                    Identification identification, Email email, Role role, boolean active) {
-        return new User(Objects.requireNonNull(id, "El id no puede ser null"), username, fullName,
-                passwordHash, identification, email, role, active);
+    public static User reconstitute(UserId id, Username username, String firstName, String lastName,
+                                    PasswordHash passwordHash, Identification identification,
+                                    Email email, Role role, boolean active) {
+        return new User(Objects.requireNonNull(id, "El id no puede ser null"), username,
+                firstName, lastName, passwordHash, identification, email, role, active);
     }
 
     public static Role resolveRegistrationRole(Role requestedRole, Role actorRole) {
@@ -46,13 +51,13 @@ public class User {
         return Role.STUDENT;
     }
 
-    private String validateFullName(String value) {
+    private String validateName(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("El nombre completo no puede ser null o vacío");
+            throw new IllegalArgumentException("El " + fieldName + " no puede ser null o vacío");
         }
         var trimmed = value.trim();
-        if (trimmed.length() > 150) {
-            throw new IllegalArgumentException("El nombre completo no puede tener más de 150 caracteres");
+        if (trimmed.length() > 75) {
+            throw new IllegalArgumentException("El " + fieldName + " no puede tener más de 75 caracteres");
         }
         return trimmed;
     }
@@ -77,8 +82,16 @@ public class User {
         return passwordHash;
     }
 
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
     public String getFullName() {
-        return fullName;
+        return (firstName + " " + lastName).trim();
     }
 
     public Role getRole() {
