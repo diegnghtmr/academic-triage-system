@@ -38,6 +38,7 @@ docker-compose.override.yml
 
 # Local agent instructions
 AGENTS.md
+.atl/
 
 # Version managers
 mise.toml
