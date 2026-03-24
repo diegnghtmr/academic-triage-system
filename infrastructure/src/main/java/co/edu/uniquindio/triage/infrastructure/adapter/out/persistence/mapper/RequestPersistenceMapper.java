@@ -100,7 +100,14 @@ public class RequestPersistenceMapper {
         entity.setRequestType(requestType);
 
         var history = request.getHistory().stream()
-                .map(historyEntry -> toHistoryEntity(historyEntry, entity, userReferenceProvider.apply(historyEntry.getPerformedById().value())))
+                .map(historyEntry -> toHistoryEntity(
+                        historyEntry,
+                        entity,
+                        userReferenceProvider.apply(historyEntry.getPerformedById().value()),
+                        historyEntry.getResponsibleId() == null
+                                ? null
+                                : userReferenceProvider.apply(historyEntry.getResponsibleId().value())
+                ))
                 .toList();
         entity.setHistory(history);
 
@@ -171,13 +178,15 @@ public class RequestPersistenceMapper {
                 entity.getObservations(),
                 entity.getTimestamp(),
                 new RequestId(entity.getRequest().getId()),
-                new UserId(entity.getPerformedBy().getId())
+                new UserId(entity.getPerformedBy().getId()),
+                entity.getResponsible() == null ? null : new UserId(entity.getResponsible().getId())
         );
     }
 
     private RequestHistoryJpaEntity toHistoryEntity(RequestHistory history,
                                                     AcademicRequestJpaEntity request,
-                                                    UserJpaEntity performedBy) {
+                                                    UserJpaEntity performedBy,
+                                                    UserJpaEntity responsible) {
         var entity = new RequestHistoryJpaEntity();
         entity.setId(history.getId() == null ? null : history.getId().value());
         entity.setAction(history.getAction().name());
@@ -185,6 +194,7 @@ public class RequestPersistenceMapper {
         entity.setTimestamp(history.getTimestamp());
         entity.setRequest(request);
         entity.setPerformedBy(performedBy);
+        entity.setResponsible(responsible);
         return entity;
     }
 

@@ -27,6 +27,7 @@ public interface RequestJpaRepository extends JpaRepository<AcademicRequestJpaEn
             left join fetch request.requestType
             left join fetch request.history historyEntry
             left join fetch historyEntry.performedBy
+            left join fetch historyEntry.responsible
             where request.id = :requestId
             """)
     Optional<AcademicRequestJpaEntity> findDetailedById(@Param("requestId") Long requestId);

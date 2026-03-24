@@ -39,4 +39,8 @@ public class RequestHistoryJpaEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "performed_by_id", nullable = false)
     private UserJpaEntity performedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsible_id")
+    private UserJpaEntity responsible;
 }

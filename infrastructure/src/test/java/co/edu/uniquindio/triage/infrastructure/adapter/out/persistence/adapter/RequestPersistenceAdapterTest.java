@@ -291,6 +291,85 @@ class RequestPersistenceAdapterTest {
     }
 
     @Test
+    void triageUpdateMustPersistAppendedHistoryResponsibleAuditAndStateChanges() {
+        var requester = saveUser("triage-stu", Role.STUDENT);
+        var triageActor = saveUser("triage-act", Role.STAFF);
+        var assignee = saveUser("triage-asg", Role.STAFF);
+        var initialType = saveRequestType("Tipo inicial triage");
+        var classifiedType = saveRequestType("Tipo clasificado triage");
+        var originChannel = saveOriginChannel("Canal triage");
+        var requestId = requestIdPersistenceAdapter.nextId();
+
+        requestPersistenceAdapter.save(new AcademicRequest(
+                requestId,
+                "Solicitud para validar persistencia de triage",
+                requester.getId(),
+                originChannel.getId(),
+                initialType.getId(),
+                LocalDate.of(2026, 4, 20),
+                false,
+                LocalDateTime.of(2026, 3, 24, 8, 0)
+        ));
+        entityManager.flush();
+        entityManager.clear();
+
+        var request = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        request.classify(
+                classifiedType.getId(),
+                "Clasificación manual",
+                triageActor.getId(),
+                LocalDateTime.of(2026, 3, 24, 9, 0)
+        );
+        request.prioritize(
+                Priority.HIGH,
+                "Urgencia académica validada",
+                triageActor.getId(),
+                LocalDateTime.of(2026, 3, 24, 9, 15)
+        );
+        request.assign(
+                assignee,
+                triageActor.getId(),
+                "Asignada al staff responsable",
+                LocalDateTime.of(2026, 3, 24, 9, 30)
+        );
+
+        assertThat(request.getHistory()).hasSize(4);
+        assertThat(request.getHistory()).extracting(history -> history.getId()).containsNull();
+
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+
+        assertThat(loaded.getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
+        assertThat(loaded.getRequestTypeId()).isEqualTo(classifiedType.getId());
+        assertThat(loaded.getPriority()).isEqualTo(Priority.HIGH);
+        assertThat(loaded.getPriorityJustification()).isEqualTo("Urgencia académica validada");
+        assertThat(loaded.getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(loaded.getHistory()).hasSize(4);
+        assertThat(loaded.getHistory()).allMatch(history -> history.getId() != null);
+        assertThat(loaded.getHistory()).extracting(history -> history.getAction())
+                .containsExactly(
+                        HistoryAction.REGISTERED,
+                        HistoryAction.CLASSIFIED,
+                        HistoryAction.PRIORITIZED,
+                        HistoryAction.ASSIGNED
+                );
+
+        var assignedHistory = loaded.getHistory().get(3);
+        assertThat(assignedHistory.getPerformedById()).isEqualTo(triageActor.getId());
+        assertThat(assignedHistory.getResponsibleId()).isEqualTo(assignee.getId());
+
+        assertThat(detail.assignedTo()).isPresent();
+        assertThat(detail.assignedTo().orElseThrow().getId()).isEqualTo(assignee.getId());
+        assertThat(detail.history()).hasSize(4);
+        assertThat(detail.history().get(3).performedBy().getId()).isEqualTo(triageActor.getId());
+        assertThat(detail.history().get(3).historyEntry().getResponsibleId()).isEqualTo(assignee.getId());
+    }
+
+    @Test
     void searchMustApplyRequestTypeInclusiveDateBoundsAndPaginationMetadata() {
         var requester = saveUser("student-e", Role.STUDENT);
         var staff = saveUser("staff-d", Role.STAFF);
