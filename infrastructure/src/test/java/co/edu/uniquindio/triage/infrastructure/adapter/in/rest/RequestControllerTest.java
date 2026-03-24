@@ -1,15 +1,21 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
+import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.domain.enums.HistoryAction;
+import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
+import co.edu.uniquindio.triage.domain.exception.InvalidStateTransitionException;
 import co.edu.uniquindio.triage.domain.exception.RequestNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
 import co.edu.uniquindio.triage.domain.model.AcademicRequest;
@@ -91,6 +97,15 @@ class RequestControllerTest {
     private CreateRequestUseCase createRequestUseCase;
 
     @MockitoBean
+    private ClassifyRequestUseCase classifyRequestUseCase;
+
+    @MockitoBean
+    private PrioritizeRequestUseCase prioritizeRequestUseCase;
+
+    @MockitoBean
+    private AssignRequestUseCase assignRequestUseCase;
+
+    @MockitoBean
     private ListRequestsQuery listRequestsQuery;
 
     @MockitoBean
@@ -155,6 +170,305 @@ class RequestControllerTest {
                                 """))
                 .andExpect(status().isForbidden())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PROBLEM_JSON_VALUE)))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void classifyMustReturn200AndBindCommand() throws Exception {
+        given(classifyRequestUseCase.execute(any(), any())).willReturn(classifiedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/classify", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "requestTypeId": 4,
+                                  "observations": "  Reclasificada por soporte académico.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("CLASSIFIED"))
+                .andExpect(jsonPath("$.requestType.id").value(4));
+
+        verify(classifyRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && command.requestTypeId().equals(new RequestTypeId(4L))
+                        && "Reclasificada por soporte académico.".equals(command.observations())),
+                argThat(actor -> actor.role() == Role.STAFF && actor.userId().equals(new UserId(10L)))
+        );
+    }
+
+    @Test
+    void classifyMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/classify", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "Sin tipo"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PROBLEM_JSON_VALUE)))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("requestTypeId"));
+    }
+
+    @Test
+    void classifyMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(classifyRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "classify request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/classify", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "requestTypeId": 4
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void classifyMustReturn409WhenLifecycleTransitionIsInvalid() throws Exception {
+        given(classifyRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.CANCELLED, RequestStatus.CLASSIFIED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/classify", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "requestTypeId": 4
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
+    void classifyMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(classifyRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/classify", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "requestTypeId": 4
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void prioritizeMustReturn200AndBindCommand() throws Exception {
+        given(prioritizeRequestUseCase.execute(any(), any())).willReturn(prioritizedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/prioritize", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH",
+                                  "justification": "  Impacta matrícula en menos de 72 horas.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("CLASSIFIED"))
+                .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.priorityJustification").value("Impacta matrícula en menos de 72 horas."));
+
+        verify(prioritizeRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && command.priority() == Priority.HIGH
+                        && "Impacta matrícula en menos de 72 horas.".equals(command.justification())),
+                argThat(actor -> actor.role() == Role.STAFF && actor.userId().equals(new UserId(10L)))
+        );
+    }
+
+    @Test
+    void prioritizeMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/prioritize", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH",
+                                  "justification": "abc"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("justification"));
+    }
+
+    @Test
+    void prioritizeMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(prioritizeRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/prioritize", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH",
+                                  "justification": "Impacta matrícula en menos de 72 horas."
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void prioritizeMustReturn409WhenRequestIsNotClassified() throws Exception {
+        given(prioritizeRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.REGISTERED, RequestStatus.CLASSIFIED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/prioritize", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH",
+                                  "justification": "Impacta matrícula en menos de 72 horas."
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
+    void prioritizeMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(prioritizeRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "prioritize request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/prioritize", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH",
+                                  "justification": "Impacta matrícula en menos de 72 horas."
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void assignMustReturn200AndBindCommand() throws Exception {
+        given(assignRequestUseCase.execute(any(), any())).willReturn(inProgressAssignedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 15,
+                                  "observations": "  Se asigna a coordinación académica.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.assignedTo.id").value(15));
+
+        verify(assignRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && command.assignedToUserId().equals(new UserId(15L))
+                        && "Se asigna a coordinación académica.".equals(command.observations())),
+                argThat(actor -> actor.role() == Role.STAFF && actor.userId().equals(new UserId(10L)))
+        );
+    }
+
+    @Test
+    void assignMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 0
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("assignedToUserId"));
+    }
+
+    @Test
+    void assignMustReturn409WhenRequestIsNotPrioritizedYet() throws Exception {
+        given(assignRequestUseCase.execute(any(), any())).willThrow(new IllegalStateException("La solicitud debe estar priorizada antes de asignarse"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 15
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("La solicitud debe estar priorizada antes de asignarse"));
+    }
+
+    @Test
+    void assignMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(assignRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 15
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void assignMustReturn404WhenAssigneeDoesNotExist() throws Exception {
+        given(assignRequestUseCase.execute(any(), any())).willThrow(new EntityNotFoundException("User", "id", 15L));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 15
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void assignMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(assignRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "assign request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/assign", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "assignedToUserId": 15
+                                }
+                                """))
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.title").value("Forbidden"));
     }
@@ -306,23 +620,56 @@ class RequestControllerTest {
     }
 
     private static RequestSummary sampleSummary() {
+        return sampleSummary(new RequestTypeId(3L), RequestStatus.REGISTERED, null, null, Optional.empty());
+    }
+
+    private static RequestSummary classifiedSummary() {
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.CLASSIFIED, null, null, Optional.empty());
+    }
+
+    private static RequestSummary prioritizedSummary() {
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.CLASSIFIED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", Optional.empty());
+    }
+
+    private static RequestSummary inProgressAssignedSummary() {
+        var assignee = sampleUser(15L, "staff15", Role.STAFF);
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.IN_PROGRESS, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", Optional.of(assignee));
+    }
+
+    private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
+                                                RequestStatus status,
+                                                Priority priority,
+                                                String priorityJustification,
+                                                Optional<User> assignedTo) {
         var requester = sampleUser(7L, "jperez", Role.STUDENT);
-        var request = new AcademicRequest(
+        var request = AcademicRequest.reconstitute(
                 new RequestId(42L),
                 "Necesito un cupo adicional para la materia",
-                requester.getId(),
-                new OriginChannelId(2L),
-                new RequestTypeId(3L),
+                status,
+                priority,
+                priorityJustification,
                 LocalDate.of(2026, 3, 15),
+                LocalDateTime.of(2026, 3, 10, 8, 30),
                 false,
-                LocalDateTime.of(2026, 3, 10, 8, 30)
+                null,
+                null,
+                null,
+                null,
+                requester.getId(),
+                assignedTo.map(User::getId).orElse(null),
+                new OriginChannelId(2L),
+                requestTypeId,
+                List.of(),
+                List.of()
         );
         return new RequestSummary(
                 request,
-                new RequestType(new RequestTypeId(3L), "Cupo", "Solicitud de cupo", true),
+                new RequestType(requestTypeId, "Cupo", "Solicitud de cupo", true),
                 new OriginChannel(new OriginChannelId(2L), "Correo", true),
                 requester,
-                Optional.empty()
+                assignedTo
         );
     }
 
