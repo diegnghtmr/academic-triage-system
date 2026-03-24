@@ -106,14 +106,24 @@ public class AcademicRequest {
 
     public void classify(RequestTypeId newRequestTypeId, RequestHistoryId historyId,
                          UserId performedById, LocalDateTime timestamp) {
+        classify(newRequestTypeId, (String) null, performedById, timestamp);
+    }
+
+    public void classify(RequestTypeId newRequestTypeId, String observations,
+                         UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CLASSIFIED);
         this.requestTypeId = Objects.requireNonNull(newRequestTypeId, "El requestTypeId no puede ser null");
         this.status = RequestStatus.CLASSIFIED;
-        addHistory(historyId, HistoryAction.CLASSIFIED, null, timestamp, performedById);
+        addHistory(HistoryAction.CLASSIFIED, observations, timestamp, performedById);
     }
 
     public void prioritize(Priority newPriority, String justification,
-                            RequestHistoryId historyId, UserId performedById, LocalDateTime timestamp) {
+                             RequestHistoryId historyId, UserId performedById, LocalDateTime timestamp) {
+        prioritize(newPriority, justification, performedById, timestamp);
+    }
+
+    public void prioritize(Priority newPriority, String justification,
+                           UserId performedById, LocalDateTime timestamp) {
         if (this.status != RequestStatus.CLASSIFIED) {
             throw new IllegalStateException(
                     String.format("Solo se puede priorizar en estado CLASSIFIED, estado actual: %s", this.status));
@@ -121,11 +131,16 @@ public class AcademicRequest {
         Objects.requireNonNull(newPriority, "La prioridad no puede ser null");
         this.priorityJustification = validateJustification(justification);
         this.priority = newPriority;
-        addHistory(historyId, HistoryAction.PRIORITIZED, justification, timestamp, performedById);
+        addHistory(HistoryAction.PRIORITIZED, this.priorityJustification, timestamp, performedById);
     }
 
     public void assign(User staff, RequestHistoryId historyId, LocalDateTime timestamp) {
+        assign(staff, staff == null ? null : staff.getId(), null, timestamp);
+    }
+
+    public void assign(User staff, UserId performedById, String observations, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.IN_PROGRESS);
+        ensurePrioritizedBeforeAssignment();
         Objects.requireNonNull(staff, "El usuario responsable no puede ser null");
         if (!staff.isActive()) {
             throw new IllegalArgumentException("El usuario responsable debe estar activo");
@@ -135,40 +150,56 @@ public class AcademicRequest {
         }
         this.responsibleId = staff.getId();
         this.status = RequestStatus.IN_PROGRESS;
-        addHistory(historyId, HistoryAction.ASSIGNED, null, timestamp, staff.getId());
+        addHistory(HistoryAction.ASSIGNED, observations, timestamp, performedById, this.responsibleId);
     }
 
     public void attend(String observation, RequestHistoryId historyId,
                        UserId performedById, LocalDateTime timestamp) {
+        attend(observation, performedById, timestamp);
+    }
+
+    public void attend(String observation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.ATTENDED);
         this.attendanceObservation = validateObservation(observation);
         this.status = RequestStatus.ATTENDED;
-        addHistory(historyId, HistoryAction.ATTENDED, observation, timestamp, performedById);
+        addHistory(HistoryAction.ATTENDED, observation, timestamp, performedById);
     }
 
     public void close(String closingObservation, RequestHistoryId historyId,
                       UserId performedById, LocalDateTime timestamp) {
+        close(closingObservation, performedById, timestamp);
+    }
+
+    public void close(String closingObservation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CLOSED);
         this.closingObservation = validateClosingObservation(closingObservation);
         this.status = RequestStatus.CLOSED;
-        addHistory(historyId, HistoryAction.CLOSED, closingObservation, timestamp, performedById);
+        addHistory(HistoryAction.CLOSED, closingObservation, timestamp, performedById);
     }
 
     public void cancel(String reason, RequestHistoryId historyId,
                        UserId performedById, LocalDateTime timestamp) {
+        cancel(reason, performedById, timestamp);
+    }
+
+    public void cancel(String reason, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CANCELLED);
         this.cancellationReason = validateReason(reason);
         this.status = RequestStatus.CANCELLED;
-        addHistory(historyId, HistoryAction.CANCELLED, reason, timestamp, performedById);
+        addHistory(HistoryAction.CANCELLED, reason, timestamp, performedById);
     }
 
     public void reject(String reason, UserId rejectedById, RequestHistoryId historyId,
                        LocalDateTime timestamp) {
+        reject(reason, rejectedById, timestamp);
+    }
+
+    public void reject(String reason, UserId rejectedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.REJECTED);
         Objects.requireNonNull(rejectedById, "El id del usuario que rechaza no puede ser null");
         this.rejectionReason = validateReason(reason);
         this.status = RequestStatus.REJECTED;
-        addHistory(historyId, HistoryAction.REJECTED, reason, timestamp, rejectedById);
+        addHistory(HistoryAction.REJECTED, reason, timestamp, rejectedById);
     }
 
     public void applyRule(BusinessRuleId ruleId) {
@@ -197,7 +228,7 @@ public class AcademicRequest {
     }
 
     public boolean isPendingAssignment() {
-        return this.status == RequestStatus.CLASSIFIED && this.responsibleId == null;
+        return this.status == RequestStatus.CLASSIFIED && this.responsibleId == null && isPrioritized();
     }
 
     public boolean isUnattended() {
@@ -280,14 +311,31 @@ public class AcademicRequest {
 
     // --- Validation helpers ---
 
-    private void addHistory(RequestHistoryId historyId, HistoryAction action,
-                            String observations, LocalDateTime timestamp, UserId performedById) {
+    private void addHistory(HistoryAction action, String observations,
+                            LocalDateTime timestamp, UserId performedById) {
+        addHistory(action, observations, timestamp, performedById, null);
+    }
+
+    private void addHistory(HistoryAction action, String observations,
+                            LocalDateTime timestamp, UserId performedById, UserId responsibleId) {
         this.history.add(new RequestHistory(
-                Objects.requireNonNull(historyId, "El historyId no puede ser null"),
+                null,
                 action, observations,
                 Objects.requireNonNull(timestamp, "El timestamp no puede ser null"),
-                this.id, performedById
+                this.id,
+                Objects.requireNonNull(performedById, "El performedById no puede ser null"),
+                responsibleId
         ));
+    }
+
+    private void ensurePrioritizedBeforeAssignment() {
+        if (!isPrioritized()) {
+            throw new IllegalStateException("La solicitud debe estar priorizada antes de asignarse");
+        }
+    }
+
+    private boolean isPrioritized() {
+        return this.priority != null && this.priorityJustification != null && !this.priorityJustification.isBlank();
     }
 
     private String validateDescription(String description) {
