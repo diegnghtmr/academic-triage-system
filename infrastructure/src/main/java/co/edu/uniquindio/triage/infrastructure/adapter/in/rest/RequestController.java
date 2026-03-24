@@ -1,18 +1,25 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
+import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,17 +39,26 @@ import java.util.Optional;
 class RequestController {
 
     private final CreateRequestUseCase createRequestUseCase;
+    private final ClassifyRequestUseCase classifyRequestUseCase;
+    private final PrioritizeRequestUseCase prioritizeRequestUseCase;
+    private final AssignRequestUseCase assignRequestUseCase;
     private final ListRequestsQuery listRequestsQuery;
     private final GetRequestDetailQuery getRequestDetailQuery;
     private final RequestRestMapper requestRestMapper;
     private final AuthenticatedActorMapper authenticatedActorMapper;
 
     public RequestController(CreateRequestUseCase createRequestUseCase,
+                             ClassifyRequestUseCase classifyRequestUseCase,
+                             PrioritizeRequestUseCase prioritizeRequestUseCase,
+                             AssignRequestUseCase assignRequestUseCase,
                              ListRequestsQuery listRequestsQuery,
                              GetRequestDetailQuery getRequestDetailQuery,
                              RequestRestMapper requestRestMapper,
                              AuthenticatedActorMapper authenticatedActorMapper) {
         this.createRequestUseCase = Objects.requireNonNull(createRequestUseCase);
+        this.classifyRequestUseCase = Objects.requireNonNull(classifyRequestUseCase);
+        this.prioritizeRequestUseCase = Objects.requireNonNull(prioritizeRequestUseCase);
+        this.assignRequestUseCase = Objects.requireNonNull(assignRequestUseCase);
         this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
         this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
         this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
@@ -56,6 +72,39 @@ class RequestController {
         var created = createRequestUseCase.execute(requestRestMapper.toCommand(request), actor);
         var response = requestRestMapper.toResponse(created);
         return ResponseEntity.created(URI.create("/api/v1/requests/" + response.id())).body(response);
+    }
+
+    @PatchMapping("/{requestId}/classify")
+    public ResponseEntity<RequestResponse> classify(@PathVariable("requestId") Long requestId,
+                                                    @Valid @RequestBody ClassifyRequestRequest request,
+                                                    Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                classifyRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/prioritize")
+    public ResponseEntity<RequestResponse> prioritize(@PathVariable("requestId") Long requestId,
+                                                      @Valid @RequestBody PrioritizeRequestRequest request,
+                                                      Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                prioritizeRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/assign")
+    public ResponseEntity<RequestResponse> assign(@PathVariable("requestId") Long requestId,
+                                                  @Valid @RequestBody AssignRequestRequest request,
+                                                  Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                assignRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping

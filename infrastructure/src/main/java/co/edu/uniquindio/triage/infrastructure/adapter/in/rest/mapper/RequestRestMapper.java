@@ -1,8 +1,11 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
 
 import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.AssignRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.ClassifyRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDetailQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
+import co.edu.uniquindio.triage.application.port.in.command.request.PrioritizeRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
@@ -17,9 +20,12 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.OriginChannelResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.RequestTypeResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
 import org.mapstruct.Mapper;
@@ -39,6 +45,33 @@ public interface RequestRestMapper {
                 new OriginChannelId(request.originChannelId()),
                 request.description(),
                 request.deadline()
+        );
+    }
+
+    default ClassifyRequestCommand toCommand(Long requestId, ClassifyRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new ClassifyRequestCommand(
+                new RequestId(requestId),
+                new RequestTypeId(request.requestTypeId()),
+                request.observations()
+        );
+    }
+
+    default PrioritizeRequestCommand toCommand(Long requestId, PrioritizeRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new PrioritizeRequestCommand(
+                new RequestId(requestId),
+                request.priority(),
+                request.justification()
+        );
+    }
+
+    default AssignRequestCommand toCommand(Long requestId, AssignRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new AssignRequestCommand(
+                new RequestId(requestId),
+                new UserId(request.assignedToUserId()),
+                request.observations()
         );
     }
 
