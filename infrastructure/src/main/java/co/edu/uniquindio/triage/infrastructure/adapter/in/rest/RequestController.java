@@ -1,0 +1,96 @@
+package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
+
+import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
+import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
+import co.edu.uniquindio.triage.domain.enums.Priority;
+import co.edu.uniquindio.triage.domain.enums.RequestStatus;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URI;
+import java.time.LocalDate;
+import java.util.Objects;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/v1/requests")
+class RequestController {
+
+    private final CreateRequestUseCase createRequestUseCase;
+    private final ListRequestsQuery listRequestsQuery;
+    private final GetRequestDetailQuery getRequestDetailQuery;
+    private final RequestRestMapper requestRestMapper;
+    private final AuthenticatedActorMapper authenticatedActorMapper;
+
+    public RequestController(CreateRequestUseCase createRequestUseCase,
+                             ListRequestsQuery listRequestsQuery,
+                             GetRequestDetailQuery getRequestDetailQuery,
+                             RequestRestMapper requestRestMapper,
+                             AuthenticatedActorMapper authenticatedActorMapper) {
+        this.createRequestUseCase = Objects.requireNonNull(createRequestUseCase);
+        this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
+        this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
+        this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
+        this.authenticatedActorMapper = Objects.requireNonNull(authenticatedActorMapper);
+    }
+
+    @PostMapping
+    public ResponseEntity<RequestResponse> create(@Valid @RequestBody CreateRequestRequest request,
+                                                  Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var created = createRequestUseCase.execute(requestRestMapper.toCommand(request), actor);
+        var response = requestRestMapper.toResponse(created);
+        return ResponseEntity.created(URI.create("/api/v1/requests/" + response.id())).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<PagedRequestResponse> list(@RequestParam(name = "status") Optional<RequestStatus> status,
+                                                     @RequestParam(name = "requestTypeId") Optional<Long> requestTypeId,
+                                                     @RequestParam(name = "priority") Optional<Priority> priority,
+                                                     @RequestParam(name = "assignedToUserId") Optional<Long> assignedToUserId,
+                                                     @RequestParam(name = "requesterUserId") Optional<Long> requesterUserId,
+                                                     @RequestParam(name = "dateFrom") Optional<LocalDate> dateFrom,
+                                                     @RequestParam(name = "dateTo") Optional<LocalDate> dateTo,
+                                                     @RequestParam(name = "page", defaultValue = "0") int page,
+                                                     @RequestParam(name = "size", defaultValue = "20") int size,
+                                                     @RequestParam(name = "sort", defaultValue = "registrationDateTime,desc") String sort,
+                                                     Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var query = requestRestMapper.toQueryModel(
+                status,
+                requestTypeId,
+                priority,
+                assignedToUserId,
+                requesterUserId,
+                dateFrom,
+                dateTo,
+                page,
+                size,
+                sort
+        );
+        return ResponseEntity.ok(requestRestMapper.toPagedResponse(listRequestsQuery.execute(query, actor)));
+    }
+
+    @GetMapping("/{requestId}")
+    public ResponseEntity<RequestDetailResponse> getById(@PathVariable("requestId") Long requestId,
+                                                         Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var detail = getRequestDetailQuery.execute(requestRestMapper.toDetailQuery(requestId), actor);
+        return ResponseEntity.ok(requestRestMapper.toDetailResponse(detail));
+    }
+}
