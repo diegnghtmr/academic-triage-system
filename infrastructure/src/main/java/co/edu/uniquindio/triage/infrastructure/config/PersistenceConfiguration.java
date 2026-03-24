@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.AuthRestMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter.UserPersistenceAdapter;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.UserPersistenceMapper;
@@ -34,5 +35,10 @@ public class PersistenceConfiguration {
     @Bean
     AuthRestMapper authRestMapper(UserRestMapper userRestMapper) {
         return new AuthRestMapper(userRestMapper);
+    }
+
+    @Bean
+    RequestRestMapper requestRestMapper(UserRestMapper userRestMapper) {
+        return new RequestRestMapper(userRestMapper);
     }
 }
