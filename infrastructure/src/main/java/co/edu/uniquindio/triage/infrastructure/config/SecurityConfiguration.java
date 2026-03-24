@@ -2,7 +2,6 @@ package co.edu.uniquindio.triage.infrastructure.config;
 
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.common.ErrorResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.BcryptPasswordAdapter;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.JwtAuthenticationFilter;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.JwtTokenAdapter;
@@ -13,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,8 +20,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import java.time.OffsetDateTime;
 
 @Configuration
 @EnableWebSecurity
@@ -89,13 +87,9 @@ public class SecurityConfiguration {
                             HttpStatus status,
                             String message) throws java.io.IOException {
         response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(
-                status.value(),
-                status.getReasonPhrase(),
-                message,
-                OffsetDateTime.now(),
-                null
-        ));
+        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+        var problemDetail = ProblemDetail.forStatusAndDetail(status, message);
+        problemDetail.setTitle(status.getReasonPhrase());
+        objectMapper.writeValue(response.getOutputStream(), problemDetail);
     }
 }

@@ -1,7 +1,6 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.AuthRestMapper;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter.UserPersistenceAdapter;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.UserPersistenceMapper;
@@ -27,6 +26,19 @@ public class PersistenceConfiguration {
         return new UserPersistenceAdapter(userJpaRepository, userPersistenceMapper);
     }
 
+    /*
+     * Transitional note:
+     * - CatalogPersistenceMapper and RequestRestMapper already follow the MapStruct + componentModel="spring" policy.
+     * - UserPersistenceMapper, UserRestMapper, and AuthRestMapper are older hand-written mappers still instantiated directly
+     *   by production code and tests outside this file.
+     * - Converting them to generated MapStruct beans would require touching those mapper classes and their consumers,
+     *   which is intentionally out of scope for this bounded governance fix.
+     */
+}
+
+@Configuration
+class LegacyRestMapperConfiguration {
+
     @Bean
     UserRestMapper userRestMapper() {
         return new UserRestMapper();
@@ -35,10 +47,5 @@ public class PersistenceConfiguration {
     @Bean
     AuthRestMapper authRestMapper(UserRestMapper userRestMapper) {
         return new AuthRestMapper(userRestMapper);
-    }
-
-    @Bean
-    RequestRestMapper requestRestMapper(UserRestMapper userRestMapper) {
-        return new RequestRestMapper(userRestMapper);
     }
 }

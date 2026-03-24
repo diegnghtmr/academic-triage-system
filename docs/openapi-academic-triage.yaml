@@ -127,11 +127,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
-          description: Username or email already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   # ═══════════════════════════════════════════
   # ACADEMIC REQUESTS
@@ -174,11 +170,11 @@ paths:
                 type: string
                 example: /api/v1/requests/42
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/ProblemUnauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ProblemForbidden'
 
     get:
       tags: [Requests]
@@ -207,8 +203,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedRequestResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/ProblemUnauthorized'
 
   /requests/{requestId}:
     get:
@@ -229,12 +227,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestDetailResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/ProblemUnauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ProblemForbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/ProblemNotFound'
 
   /requests/{requestId}/classify:
     patch:
@@ -273,16 +273,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                status: 409
-                error: "Conflict"
-                message: "Cannot classify a request in CANCELLED status. Required status: REGISTERED."
-                timestamp: "2026-03-01T10:30:00Z"
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/prioritize:
     patch:
@@ -320,11 +311,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/assign:
     patch:
@@ -363,11 +350,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: Invalid state transition or assigned user is inactive
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/attend:
     patch:
@@ -401,11 +384,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/close:
     patch:
@@ -438,21 +417,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          description: Missing closing observation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/cancel:
     patch:
@@ -485,11 +456,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          description: Missing cancellation reason
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -497,11 +464,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /requests/{requestId}/reject:
     patch:
@@ -534,11 +497,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          description: Missing rejection reason
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -546,11 +505,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   # ═══════════════════════════════════════════
   # HISTORY
@@ -771,11 +726,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: A request type with the same name already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /catalogs/request-types/{typeId}:
     get:
@@ -875,11 +826,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: An origin channel with the same name already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemConflict'
 
   /catalogs/origin-channels/{channelId}:
     get:
@@ -1113,16 +1060,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '503':
-          description: AI service unavailable — the system operates without AI
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                status: 503
-                error: "Service Unavailable"
-                message: "The AI service is currently unavailable. Please use manual classification."
-                timestamp: "2026-03-01T10:30:00Z"
+          $ref: '#/components/responses/ProblemServiceUnavailable'
 
   /ai/summarize/{requestId}:
     get:
@@ -1156,11 +1094,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '503':
-          description: AI service unavailable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProblemServiceUnavailable'
 
   # ═══════════════════════════════════════════
   # REPORTS
@@ -1343,53 +1277,118 @@ components:
         default: "registrationDateTime,desc"
 
   responses:
+    ProblemBadRequest:
+      description: Invalid input data
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 400
+            title: "Bad Request"
+            detail: "La solicitud contiene errores de validación"
+            fieldErrors:
+              - field: "description"
+                message: "size must be between 10 and 2000"
+
+    ProblemUnauthorized:
+      description: Not authenticated or JWT token is invalid/expired
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 401
+            title: "Unauthorized"
+            detail: "Invalid or expired JWT token."
+
+    ProblemForbidden:
+      description: Insufficient permissions for this operation
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 403
+            title: "Forbidden"
+            detail: "You do not have permission to perform this operation. Required role: STAFF."
+
+    ProblemNotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 404
+            title: "Not Found"
+            detail: "Request with ID 999 not found."
+
+    ProblemConflict:
+      description: Business rule or state conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 409
+            title: "Conflict"
+            detail: "Cannot classify a request in CANCELLED status. Required status: REGISTERED."
+
+    ProblemServiceUnavailable:
+      description: Optional dependency temporarily unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 503
+            title: "Service Unavailable"
+            detail: "The AI service is currently unavailable. Please use manual classification."
+
     BadRequest:
       description: Invalid input data
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetailResponse'
           example:
             status: 400
-            error: "Bad Request"
-            message: "The request description is required."
-            timestamp: "2026-03-01T10:30:00Z"
+            title: "Bad Request"
+            detail: "The request description is required."
 
     Unauthorized:
       description: Not authenticated or JWT token is invalid/expired
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetailResponse'
           example:
             status: 401
-            error: "Unauthorized"
-            message: "Invalid or expired JWT token."
-            timestamp: "2026-03-01T10:30:00Z"
+            title: "Unauthorized"
+            detail: "Invalid or expired JWT token."
 
     Forbidden:
       description: Insufficient permissions for this operation
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetailResponse'
           example:
             status: 403
-            error: "Forbidden"
-            message: "You do not have permission to perform this operation. Required role: STAFF."
-            timestamp: "2026-03-01T10:30:00Z"
+            title: "Forbidden"
+            detail: "You do not have permission to perform this operation. Required role: STAFF."
 
     NotFound:
       description: Resource not found
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetailResponse'
           example:
             status: 404
-            error: "Not Found"
-            message: "Request with ID 999 not found."
-            timestamp: "2026-03-01T10:30:00Z"
+            title: "Not Found"
+            detail: "Request with ID 999 not found."
 
   schemas:
 
@@ -1954,23 +1953,27 @@ components:
               resolvedCount:
                 type: integer
 
-    # ── Generic Error ──
-
-    ErrorResponse:
+    ProblemDetailResponse:
       type: object
       properties:
+        type:
+          type: string
+          format: uri
+          nullable: true
+          example: about:blank
+        title:
+          type: string
+          example: Bad Request
         status:
           type: integer
           example: 400
-        error:
+        detail:
           type: string
-          example: "Bad Request"
-        message:
+          example: La solicitud contiene errores de validación
+        instance:
           type: string
-          example: "The description field is required."
-        timestamp:
-          type: string
-          format: date-time
+          format: uri
+          nullable: true
         fieldErrors:
           type: array
           nullable: true
@@ -1981,4 +1984,4 @@ components:
                 type: string
               message:
                 type: string
-          description: Per-field validation errors (when applicable)
+          description: Per-field validation errors when bean validation fails
