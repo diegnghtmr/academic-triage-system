@@ -3,6 +3,8 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice;
 import co.edu.uniquindio.triage.domain.exception.AuthenticationFailedException;
 import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
+import co.edu.uniquindio.triage.domain.exception.BusinessRuleViolationException;
+import co.edu.uniquindio.triage.domain.exception.InvalidStateTransitionException;
 import co.edu.uniquindio.triage.domain.exception.RequestNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.common.FieldErrorResponse;
@@ -43,6 +45,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     ResponseEntity<ProblemDetail> handleEntityNotFound(EntityNotFoundException exception) {
         return build(HttpStatus.NOT_FOUND, exception.getMessage(), null);
+    }
+
+    @ExceptionHandler({InvalidStateTransitionException.class, BusinessRuleViolationException.class, IllegalStateException.class})
+    ResponseEntity<ProblemDetail> handleConflict(RuntimeException exception) {
+        return build(HttpStatus.CONFLICT, exception.getMessage(), null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

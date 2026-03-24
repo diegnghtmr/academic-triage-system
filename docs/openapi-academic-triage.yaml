@@ -281,7 +281,10 @@ paths:
       summary: Prioritize a request
       description: |
         Assigns a priority level (HIGH, MEDIUM, LOW) with a mandatory justification
-        based on business rules.
+        provided explicitly by STAFF.
+
+        Batch 3A keeps prioritization manual: no business-rule automation or AI path
+        is required for this operation.
 
         **Allowed roles**: STAFF.
         **Precondition**: The request must be in `CLASSIFIED` status.
@@ -310,6 +313,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/ProblemConflict'
 
@@ -349,6 +354,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/ProblemConflict'
 
