@@ -370,6 +370,138 @@ class RequestPersistenceAdapterTest {
     }
 
     @Test
+    void attendMustPersistAttendanceObservationAndAppendedHistory() {
+        var requester = saveUser("attend-stu", Role.STUDENT);
+        var triageActor = saveUser("attend-act", Role.STAFF);
+        var assignee = saveUser("attend-asg", Role.STAFF);
+        var initialType = saveRequestType("Tipo inicial attend");
+        var classifiedType = saveRequestType("Tipo clasificado attend");
+        var originChannel = saveOriginChannel("Canal attend");
+        var requestId = requestIdPersistenceAdapter.nextId();
+
+        requestPersistenceAdapter.save(new AcademicRequest(
+                requestId,
+                "Solicitud para validar persistencia de atención",
+                requester.getId(),
+                originChannel.getId(),
+                initialType.getId(),
+                LocalDate.of(2026, 4, 22),
+                false,
+                LocalDateTime.of(2026, 3, 24, 8, 0)
+        ));
+        entityManager.flush();
+        entityManager.clear();
+
+        var request = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        request.classify(
+                classifiedType.getId(),
+                "Clasificación para atención",
+                triageActor.getId(),
+                LocalDateTime.of(2026, 3, 24, 9, 0)
+        );
+        request.prioritize(
+                Priority.HIGH,
+                "Urgencia confirmada para atención",
+                triageActor.getId(),
+                LocalDateTime.of(2026, 3, 24, 9, 15)
+        );
+        request.assign(
+                assignee,
+                triageActor.getId(),
+                "Asignada para atención",
+                LocalDateTime.of(2026, 3, 24, 9, 30)
+        );
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var inProgressRequest = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var attendanceObservation = "Atención manual completada con validación documental";
+        inProgressRequest.attend(attendanceObservation, assignee.getId(), LocalDateTime.of(2026, 3, 24, 10, 0));
+
+        requestPersistenceAdapter.save(inProgressRequest);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+
+        assertThat(loaded.getStatus()).isEqualTo(RequestStatus.ATTENDED);
+        assertThat(loaded.getAttendanceObservation()).isEqualTo(attendanceObservation);
+        assertThat(loaded.getHistory()).hasSize(5);
+        assertThat(loaded.getHistory()).allMatch(history -> history.getId() != null);
+        assertThat(loaded.getHistory()).extracting(history -> history.getAction())
+                .containsExactly(
+                        HistoryAction.REGISTERED,
+                        HistoryAction.CLASSIFIED,
+                        HistoryAction.PRIORITIZED,
+                        HistoryAction.ASSIGNED,
+                        HistoryAction.ATTENDED
+                );
+        assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(attendanceObservation);
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(assignee.getId());
+
+        assertThat(detail.request().getAttendanceObservation()).isEqualTo(attendanceObservation);
+        assertThat(detail.history()).hasSize(5);
+        assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.ATTENDED);
+        assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(attendanceObservation);
+        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(assignee.getId());
+    }
+
+    @Test
+    void closeMustPersistFullTwoThousandCharacterObservationWithoutTruncation() {
+        var requester = saveUser("close-stu", Role.STUDENT);
+        var staff = saveUser("close-staff", Role.STAFF);
+        var requestType = saveRequestType("Cierre extenso");
+        var originChannel = saveOriginChannel("Mesa de ayuda");
+        var requestId = requestIdPersistenceAdapter.nextId();
+
+        var request = AcademicRequest.reconstitute(
+                requestId,
+                "Solicitud para validar el cierre con observación extensa",
+                RequestStatus.ATTENDED,
+                Priority.MEDIUM,
+                "Priorizada para cierre",
+                LocalDate.of(2026, 4, 25),
+                LocalDateTime.of(2026, 3, 24, 8, 0),
+                false,
+                null,
+                null,
+                null,
+                "Atendida previamente",
+                requester.getId(),
+                staff.getId(),
+                originChannel.getId(),
+                requestType.getId(),
+                java.util.List.of(),
+                java.util.List.of()
+        );
+        var closingObservation = "c".repeat(2000);
+
+        request.close(closingObservation, staff.getId(), LocalDateTime.of(2026, 3, 24, 12, 0));
+
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+
+        assertThat(loaded.getStatus()).isEqualTo(RequestStatus.CLOSED);
+        assertThat(loaded.getClosingObservation()).hasSize(2000);
+        assertThat(loaded.getClosingObservation()).isEqualTo(closingObservation);
+        assertThat(loaded.getHistory()).extracting(history -> history.getAction())
+                .contains(HistoryAction.CLOSED);
+        assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(closingObservation);
+
+        assertThat(detail.request().getStatus()).isEqualTo(RequestStatus.CLOSED);
+        assertThat(detail.request().getClosingObservation()).hasSize(2000);
+        assertThat(detail.request().getClosingObservation()).isEqualTo(closingObservation);
+        assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.CLOSED);
+        assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(closingObservation);
+    }
+
+    @Test
     void searchMustApplyRequestTypeInclusiveDateBoundsAndPaginationMetadata() {
         var requester = saveUser("student-e", Role.STUDENT);
         var staff = saveUser("staff-d", Role.STAFF);

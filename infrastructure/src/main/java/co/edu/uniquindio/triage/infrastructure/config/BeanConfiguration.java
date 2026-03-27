@@ -3,7 +3,9 @@ package co.edu.uniquindio.triage.infrastructure.config;
 import co.edu.uniquindio.triage.application.port.in.auth.LoginUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.RegisterUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
@@ -21,7 +23,9 @@ import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.application.service.auth.LoginService;
 import co.edu.uniquindio.triage.application.service.auth.RegisterService;
 import co.edu.uniquindio.triage.application.service.request.AssignRequestService;
+import co.edu.uniquindio.triage.application.service.request.AttendRequestService;
 import co.edu.uniquindio.triage.application.service.request.ClassifyRequestService;
+import co.edu.uniquindio.triage.application.service.request.CloseRequestService;
 import co.edu.uniquindio.triage.application.service.request.CreateRequestService;
 import co.edu.uniquindio.triage.application.service.request.GetRequestDetailService;
 import co.edu.uniquindio.triage.application.service.request.ListRequestsService;
@@ -108,6 +112,36 @@ class BeanConfiguration {
                                               LoadUserAuthPort loadUserAuthPort,
                                               SaveRequestPort saveRequestPort) {
         return new AssignRequestService(
+                loadRequestPort,
+                loadRequestTypePort,
+                loadOriginChannelPort,
+                loadUserAuthPort,
+                saveRequestPort
+        );
+    }
+
+    @Bean
+    AttendRequestUseCase attendRequestUseCase(LoadRequestPort loadRequestPort,
+                                              LoadRequestTypePort loadRequestTypePort,
+                                              LoadOriginChannelPort loadOriginChannelPort,
+                                              LoadUserAuthPort loadUserAuthPort,
+                                              SaveRequestPort saveRequestPort) {
+        return new AttendRequestService(
+                loadRequestPort,
+                loadRequestTypePort,
+                loadOriginChannelPort,
+                loadUserAuthPort,
+                saveRequestPort
+        );
+    }
+
+    @Bean
+    CloseRequestUseCase closeRequestUseCase(LoadRequestPort loadRequestPort,
+                                            LoadRequestTypePort loadRequestTypePort,
+                                            LoadOriginChannelPort loadOriginChannelPort,
+                                            LoadUserAuthPort loadUserAuthPort,
+                                            SaveRequestPort saveRequestPort) {
+        return new CloseRequestService(
                 loadRequestPort,
                 loadRequestTypePort,
                 loadOriginChannelPort,
