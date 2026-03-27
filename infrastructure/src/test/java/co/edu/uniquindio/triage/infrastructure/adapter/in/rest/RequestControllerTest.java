@@ -2,7 +2,9 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
@@ -104,6 +106,12 @@ class RequestControllerTest {
 
     @MockitoBean
     private AssignRequestUseCase assignRequestUseCase;
+
+    @MockitoBean
+    private AttendRequestUseCase attendRequestUseCase;
+
+    @MockitoBean
+    private CloseRequestUseCase closeRequestUseCase;
 
     @MockitoBean
     private ListRequestsQuery listRequestsQuery;
@@ -474,6 +482,185 @@ class RequestControllerTest {
     }
 
     @Test
+    void attendMustReturn200AndBindCommand() throws Exception {
+        given(attendRequestUseCase.execute(any(), any())).willReturn(attendedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/attend", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "  Se gestionó el cupo con la coordinación y quedó resuelto.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("ATTENDED"));
+
+        verify(attendRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && "Se gestionó el cupo con la coordinación y quedó resuelto.".equals(command.observations())),
+                argThat(actor -> actor.role() == Role.STAFF && actor.userId().equals(new UserId(10L)))
+        );
+    }
+
+    @Test
+    void attendMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/attend", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "abc"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("observations"));
+    }
+
+    @Test
+    void attendMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(attendRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "attend request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/attend", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "Se gestionó el cupo con la coordinación."
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void attendMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(attendRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/attend", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "Se gestionó el cupo con la coordinación."
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void attendMustReturn409WhenLifecycleTransitionIsInvalid() throws Exception {
+        given(attendRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.CLASSIFIED, RequestStatus.ATTENDED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/attend", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "observations": "Se gestionó el cupo con la coordinación."
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
+    void closeMustReturn200AndBindCommand() throws Exception {
+        given(closeRequestUseCase.execute(any(), any())).willReturn(closedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/close", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "closingObservation": "  La solicitud quedó resuelta y validada con el estudiante.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.closingObservation").value("La solicitud quedó resuelta y validada con el estudiante."));
+
+        verify(closeRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && "La solicitud quedó resuelta y validada con el estudiante.".equals(command.closingObservation())),
+                argThat(actor -> actor.role() == Role.STAFF && actor.userId().equals(new UserId(10L)))
+        );
+    }
+
+    @Test
+    void closeMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/close", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "closingObservation": "abc"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("closingObservation"));
+    }
+
+    @Test
+    void closeMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(closeRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "close request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/close", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "closingObservation": "La solicitud quedó resuelta y validada con el estudiante."
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void closeMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(closeRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/close", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "closingObservation": "La solicitud quedó resuelta y validada con el estudiante."
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void closeMustReturn409WhenLifecycleTransitionIsInvalid() throws Exception {
+        given(closeRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.IN_PROGRESS, RequestStatus.CLOSED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/close", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "closingObservation": "La solicitud quedó resuelta y validada con el estudiante."
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
     void listMustBindFiltersAndReturnPagedContract() throws Exception {
         given(listRequestsQuery.execute(any(), any())).willReturn(new RequestPage<>(List.of(sampleSummary()), 1, 1, 0, 20));
 
@@ -577,6 +764,19 @@ class RequestControllerTest {
     }
 
     @Test
+    void detailMustExposeAttendedHistoryObservation() throws Exception {
+        given(getRequestDetailQuery.execute(any(), any())).willReturn(sampleDetailWithAttendanceHistory());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/requests/{requestId}", 42)
+                        .with(staffAuthentication()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ATTENDED"))
+                .andExpect(jsonPath("$.history[1].action").value("ATTENDED"))
+                .andExpect(jsonPath("$.history[1].observations").value("Se gestionó el cupo con la coordinación y se notificó al estudiante."))
+                .andExpect(jsonPath("$.history[1].performedBy.username").value("staff15"));
+    }
+
+    @Test
     void detailMustReturn403WhenActorCannotAccessRequest() throws Exception {
         given(getRequestDetailQuery.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "get request detail"));
 
@@ -638,10 +838,32 @@ class RequestControllerTest {
                 "Impacta matrícula en menos de 72 horas.", Optional.of(assignee));
     }
 
+    private static RequestSummary attendedSummary() {
+        var assignee = sampleUser(15L, "staff15", Role.STAFF);
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.ATTENDED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", Optional.of(assignee));
+    }
+
+    private static RequestSummary closedSummary() {
+        var assignee = sampleUser(15L, "staff15", Role.STAFF);
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.CLOSED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", "La solicitud quedó resuelta y validada con el estudiante.",
+                Optional.of(assignee));
+    }
+
     private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
                                                 RequestStatus status,
                                                 Priority priority,
                                                 String priorityJustification,
+                                                Optional<User> assignedTo) {
+        return sampleSummary(requestTypeId, status, priority, priorityJustification, null, assignedTo);
+    }
+
+    private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
+                                                RequestStatus status,
+                                                Priority priority,
+                                                String priorityJustification,
+                                                String closingObservation,
                                                 Optional<User> assignedTo) {
         var requester = sampleUser(7L, "jperez", Role.STUDENT);
         var request = AcademicRequest.reconstitute(
@@ -654,7 +876,7 @@ class RequestControllerTest {
                 LocalDateTime.of(2026, 3, 10, 8, 30),
                 false,
                 null,
-                null,
+                closingObservation,
                 null,
                 null,
                 requester.getId(),
@@ -691,6 +913,41 @@ class RequestControllerTest {
                 summary.requester(),
                 summary.assignedTo(),
                 List.of(new RequestHistoryDetail(historyEntry, summary.requester()))
+        );
+    }
+
+    private static RequestDetail sampleDetailWithAttendanceHistory() {
+        var assignee = sampleUser(15L, "staff15", Role.STAFF);
+        var summary = sampleSummary(new RequestTypeId(4L), RequestStatus.ATTENDED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", Optional.of(assignee));
+        var registeredEntry = new RequestHistory(
+                new RequestHistoryId(100L),
+                HistoryAction.REGISTERED,
+                "Request registered",
+                LocalDateTime.of(2026, 3, 10, 8, 30),
+                summary.request().getId(),
+                summary.requester().getId()
+        );
+        var attendedEntry = new RequestHistory(
+                new RequestHistoryId(101L),
+                HistoryAction.ATTENDED,
+                "Se gestionó el cupo con la coordinación y se notificó al estudiante.",
+                LocalDateTime.of(2026, 3, 12, 11, 15),
+                summary.request().getId(),
+                assignee.getId(),
+                assignee.getId()
+        );
+
+        return new RequestDetail(
+                summary.request(),
+                summary.requestType(),
+                summary.originChannel(),
+                summary.requester(),
+                summary.assignedTo(),
+                List.of(
+                        new RequestHistoryDetail(registeredEntry, summary.requester()),
+                        new RequestHistoryDetail(attendedEntry, assignee)
+                )
         );
     }
 
