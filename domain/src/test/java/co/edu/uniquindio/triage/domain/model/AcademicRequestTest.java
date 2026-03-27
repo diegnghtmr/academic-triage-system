@@ -95,6 +95,68 @@ class AcademicRequestTest {
         assertThat(historyEntry.getId()).isNull();
     }
 
+    @Test
+    void attendMustTransitionInProgressRequestAndPreserveTrimmedObservationInAuditTrail() {
+        var request = inProgressRequest();
+        var actorId = new UserId(50L);
+        var attendedAt = LocalDateTime.of(2026, 3, 24, 12, 0);
+
+        request.attend("  Solicitud atendida con soporte entregado al estudiante  ", actorId, attendedAt);
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.ATTENDED);
+        assertThat(request.getAttendanceObservation()).isEqualTo("Solicitud atendida con soporte entregado al estudiante");
+
+        var historyEntry = request.getHistory().getLast();
+        assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.ATTENDED);
+        assertThat(historyEntry.getObservations()).isEqualTo("Solicitud atendida con soporte entregado al estudiante");
+        assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
+    }
+
+    @Test
+    void attendMustRejectRequestsOutsideInProgressState() {
+        var request = prioritizedRequest();
+
+        assertThatThrownBy(() -> request.attend("Observación válida", new UserId(51L), LocalDateTime.now()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("ATTENDED");
+    }
+
+    @Test
+    void closeMustTransitionAttendedRequestAndAcceptTwoThousandCharacters() {
+        var request = attendedRequest();
+        var actorId = new UserId(52L);
+        var closedAt = LocalDateTime.of(2026, 3, 24, 13, 0);
+        var observation = "x".repeat(2000);
+
+        request.close(observation, actorId, closedAt);
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.CLOSED);
+        assertThat(request.getClosingObservation()).isEqualTo(observation);
+
+        var historyEntry = request.getHistory().getLast();
+        assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.CLOSED);
+        assertThat(historyEntry.getObservations()).isEqualTo(observation);
+        assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
+    }
+
+    @Test
+    void closeMustRejectBlankObservation() {
+        var request = attendedRequest();
+
+        assertThatThrownBy(() -> request.close("   ", new UserId(53L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cierre");
+    }
+
+    @Test
+    void closeMustRejectRequestsOutsideAttendedState() {
+        var request = inProgressRequest();
+
+        assertThatThrownBy(() -> request.close("Observación válida", new UserId(54L), LocalDateTime.now()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("CLOSED");
+    }
+
     private AcademicRequest newRequest() {
         return new AcademicRequest(
                 new RequestId(1L),
@@ -117,6 +179,18 @@ class AcademicRequestTest {
     private AcademicRequest prioritizedRequest() {
         var request = classifiedRequest();
         request.prioritize(Priority.MEDIUM, "Requiere revisión del equipo académico", new UserId(21L), LocalDateTime.of(2026, 3, 24, 9, 0));
+        return request;
+    }
+
+    private AcademicRequest inProgressRequest() {
+        var request = prioritizedRequest();
+        request.assign(staffUser(41L, true), new UserId(40L), "Asignada para atención", LocalDateTime.of(2026, 3, 24, 10, 0));
+        return request;
+    }
+
+    private AcademicRequest attendedRequest() {
+        var request = inProgressRequest();
+        request.attend("Atención inicial completada", new UserId(42L), LocalDateTime.of(2026, 3, 24, 11, 0));
         return request;
     }
 

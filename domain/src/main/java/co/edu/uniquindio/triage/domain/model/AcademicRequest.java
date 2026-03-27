@@ -160,9 +160,10 @@ public class AcademicRequest {
 
     public void attend(String observation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.ATTENDED);
-        this.attendanceObservation = validateObservation(observation);
+        var validatedObservation = validateObservation(observation);
+        this.attendanceObservation = validatedObservation;
         this.status = RequestStatus.ATTENDED;
-        addHistory(HistoryAction.ATTENDED, observation, timestamp, performedById);
+        addHistory(HistoryAction.ATTENDED, validatedObservation, timestamp, performedById);
     }
 
     public void close(String closingObservation, RequestHistoryId historyId,
@@ -172,9 +173,10 @@ public class AcademicRequest {
 
     public void close(String closingObservation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CLOSED);
-        this.closingObservation = validateClosingObservation(closingObservation);
+        var validatedClosingObservation = validateClosingObservation(closingObservation);
+        this.closingObservation = validatedClosingObservation;
         this.status = RequestStatus.CLOSED;
-        addHistory(HistoryAction.CLOSED, closingObservation, timestamp, performedById);
+        addHistory(HistoryAction.CLOSED, validatedClosingObservation, timestamp, performedById);
     }
 
     public void cancel(String reason, RequestHistoryId historyId,
