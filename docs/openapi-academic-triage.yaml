@@ -386,10 +386,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/ProblemConflict'
 
@@ -429,6 +433,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/ProblemConflict'
 

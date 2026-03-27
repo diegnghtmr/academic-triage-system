@@ -48,16 +48,16 @@ public class AcademicRequestJpaEntity {
     @Column(name = "registration_date", nullable = false)
     private LocalDateTime registrationDateTime;
 
-    @Column(name = "priority_justification", length = 500)
+    @Column(name = "priority_justification", length = 1000)
     private String priorityJustification;
 
-    @Column(name = "rejection_reason", length = 500)
+    @Column(name = "rejection_reason", length = 2000)
     private String rejectionReason;
 
     @Column(name = "ai_suggested", nullable = false)
     private boolean aiSuggested;
 
-    @Column(name = "closing_observation", length = 500)
+    @Column(name = "closing_observation", length = 2000)
     private String closingObservation;
 
     @Column(name = "cancellation_reason", length = 2000)
