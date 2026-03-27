@@ -2,14 +2,18 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
@@ -42,6 +46,8 @@ class RequestController {
     private final ClassifyRequestUseCase classifyRequestUseCase;
     private final PrioritizeRequestUseCase prioritizeRequestUseCase;
     private final AssignRequestUseCase assignRequestUseCase;
+    private final AttendRequestUseCase attendRequestUseCase;
+    private final CloseRequestUseCase closeRequestUseCase;
     private final ListRequestsQuery listRequestsQuery;
     private final GetRequestDetailQuery getRequestDetailQuery;
     private final RequestRestMapper requestRestMapper;
@@ -51,6 +57,8 @@ class RequestController {
                              ClassifyRequestUseCase classifyRequestUseCase,
                              PrioritizeRequestUseCase prioritizeRequestUseCase,
                              AssignRequestUseCase assignRequestUseCase,
+                             AttendRequestUseCase attendRequestUseCase,
+                             CloseRequestUseCase closeRequestUseCase,
                              ListRequestsQuery listRequestsQuery,
                              GetRequestDetailQuery getRequestDetailQuery,
                              RequestRestMapper requestRestMapper,
@@ -59,6 +67,8 @@ class RequestController {
         this.classifyRequestUseCase = Objects.requireNonNull(classifyRequestUseCase);
         this.prioritizeRequestUseCase = Objects.requireNonNull(prioritizeRequestUseCase);
         this.assignRequestUseCase = Objects.requireNonNull(assignRequestUseCase);
+        this.attendRequestUseCase = Objects.requireNonNull(attendRequestUseCase);
+        this.closeRequestUseCase = Objects.requireNonNull(closeRequestUseCase);
         this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
         this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
         this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
@@ -103,6 +113,28 @@ class RequestController {
         var actor = authenticatedActorMapper.toRequiredActor(authentication);
         var response = requestRestMapper.toResponse(
                 assignRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/attend")
+    public ResponseEntity<RequestResponse> attend(@PathVariable("requestId") Long requestId,
+                                                  @Valid @RequestBody AttendRequestRequest request,
+                                                  Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                attendRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/close")
+    public ResponseEntity<RequestResponse> close(@PathVariable("requestId") Long requestId,
+                                                 @Valid @RequestBody CloseRequestRequest request,
+                                                 Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                closeRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
         );
         return ResponseEntity.ok(response);
     }

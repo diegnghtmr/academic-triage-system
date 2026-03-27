@@ -1,8 +1,10 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
 
-import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.AssignRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.AttendRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.ClassifyRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.CloseRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDetailQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.PrioritizeRequestCommand;
@@ -21,7 +23,9 @@ import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.OriginChannelResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.RequestTypeResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
@@ -72,6 +76,22 @@ public interface RequestRestMapper {
                 new RequestId(requestId),
                 new UserId(request.assignedToUserId()),
                 request.observations()
+        );
+    }
+
+    default AttendRequestCommand toCommand(Long requestId, AttendRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new AttendRequestCommand(
+                new RequestId(requestId),
+                request.observations()
+        );
+    }
+
+    default CloseRequestCommand toCommand(Long requestId, CloseRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new CloseRequestCommand(
+                new RequestId(requestId),
+                request.closingObservation()
         );
     }
 
