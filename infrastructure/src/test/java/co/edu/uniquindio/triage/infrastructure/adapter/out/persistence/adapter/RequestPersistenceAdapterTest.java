@@ -502,6 +502,104 @@ class RequestPersistenceAdapterTest {
     }
 
     @Test
+    void cancelMustPersistFullTwoThousandCharacterReasonAndTerminalHistory() {
+        var requester = saveUser("cancel-stu", Role.STUDENT);
+        var staff = saveUser("cancel-staff", Role.STAFF);
+        var requestType = saveRequestType("Cancelación extensa");
+        var originChannel = saveOriginChannel("Portal cancelación");
+        var requestId = requestIdPersistenceAdapter.nextId();
+
+        var request = AcademicRequest.reconstitute(
+                requestId,
+                "Solicitud para validar cancelación persistida",
+                RequestStatus.CLASSIFIED,
+                Priority.MEDIUM,
+                "Clasificada para eventual cancelación",
+                LocalDate.of(2026, 4, 26),
+                LocalDateTime.of(2026, 3, 24, 8, 0),
+                false,
+                null,
+                null,
+                null,
+                null,
+                requester.getId(),
+                null,
+                originChannel.getId(),
+                requestType.getId(),
+                java.util.List.of(),
+                java.util.List.of()
+        );
+        var cancellationReason = "x".repeat(2000);
+
+        request.cancel(cancellationReason, staff.getId(), LocalDateTime.of(2026, 3, 24, 12, 30));
+
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+
+        assertThat(loaded.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        assertThat(loaded.getCancellationReason()).hasSize(2000);
+        assertThat(loaded.getCancellationReason()).isEqualTo(cancellationReason);
+        assertThat(loaded.getHistory().getLast().getAction()).isEqualTo(HistoryAction.CANCELLED);
+        assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(cancellationReason);
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(staff.getId());
+
+        assertThat(detail.request().getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        assertThat(detail.request().getCancellationReason()).hasSize(2000);
+        assertThat(detail.request().getCancellationReason()).isEqualTo(cancellationReason);
+        assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.CANCELLED);
+        assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(cancellationReason);
+        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(staff.getId());
+    }
+
+    @Test
+    void rejectMustPersistFullTwoThousandCharacterReasonAndTerminalHistory() {
+        var requester = saveUser("reject-stu", Role.STUDENT);
+        var admin = saveUser("reject-admin", Role.ADMIN);
+        var requestType = saveRequestType("Rechazo extenso");
+        var originChannel = saveOriginChannel("Portal rechazo");
+        var requestId = requestIdPersistenceAdapter.nextId();
+
+        var request = new AcademicRequest(
+                requestId,
+                "Solicitud para validar rechazo persistido",
+                requester.getId(),
+                originChannel.getId(),
+                requestType.getId(),
+                LocalDate.of(2026, 4, 27),
+                false,
+                LocalDateTime.of(2026, 3, 24, 8, 0)
+        );
+        var rejectionReason = "r".repeat(2000);
+
+        request.reject(rejectionReason, admin.getId(), LocalDateTime.of(2026, 3, 24, 13, 0));
+
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+
+        assertThat(loaded.getStatus()).isEqualTo(RequestStatus.REJECTED);
+        assertThat(loaded.getRejectionReason()).hasSize(2000);
+        assertThat(loaded.getRejectionReason()).isEqualTo(rejectionReason);
+        assertThat(loaded.getHistory().getLast().getAction()).isEqualTo(HistoryAction.REJECTED);
+        assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(rejectionReason);
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(admin.getId());
+
+        assertThat(detail.request().getStatus()).isEqualTo(RequestStatus.REJECTED);
+        assertThat(detail.request().getRejectionReason()).hasSize(2000);
+        assertThat(detail.request().getRejectionReason()).isEqualTo(rejectionReason);
+        assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.REJECTED);
+        assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(rejectionReason);
+        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
     void searchMustApplyRequestTypeInclusiveDateBoundsAndPaginationMetadata() {
         var requester = saveUser("student-e", Role.STUDENT);
         var staff = saveUser("staff-d", Role.STAFF);

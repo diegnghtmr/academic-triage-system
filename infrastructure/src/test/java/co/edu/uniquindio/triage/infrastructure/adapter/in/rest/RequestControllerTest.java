@@ -3,11 +3,13 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
@@ -112,6 +114,12 @@ class RequestControllerTest {
 
     @MockitoBean
     private CloseRequestUseCase closeRequestUseCase;
+
+    @MockitoBean
+    private CancelRequestUseCase cancelRequestUseCase;
+
+    @MockitoBean
+    private RejectRequestUseCase rejectRequestUseCase;
 
     @MockitoBean
     private ListRequestsQuery listRequestsQuery;
@@ -661,6 +669,186 @@ class RequestControllerTest {
     }
 
     @Test
+    void cancelMustReturn200AndBindCommand() throws Exception {
+        given(cancelRequestUseCase.execute(any(), any())).willReturn(cancelledSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/cancel", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cancellationReason": "  Ya no necesito el trámite porque resolví el problema.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.cancellationReason").value("Ya no necesito el trámite porque resolví el problema."));
+
+        verify(cancelRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && "Ya no necesito el trámite porque resolví el problema.".equals(command.cancellationReason())),
+                argThat(actor -> actor.role() == Role.STUDENT && actor.userId().equals(new UserId(7L)))
+        );
+    }
+
+    @Test
+    void cancelMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/cancel", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cancellationReason": "abc"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("cancellationReason"));
+    }
+
+    @Test
+    void cancelMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(cancelRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STUDENT, "cancel request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/cancel", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cancellationReason": "Ya no necesito el trámite porque resolví el problema."
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void cancelMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(cancelRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/cancel", 42)
+                        .with(studentAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cancellationReason": "Ya no necesito el trámite porque resolví el problema."
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void cancelMustReturn409WhenLifecycleTransitionIsInvalid() throws Exception {
+        given(cancelRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.IN_PROGRESS, RequestStatus.CANCELLED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/cancel", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cancellationReason": "Se cancela porque el estudiante resolvió el caso por otra vía."
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
+    void rejectMustReturn200AndBindCommand() throws Exception {
+        given(rejectRequestUseCase.execute(any(), any())).willReturn(rejectedSummary());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/reject", 42)
+                        .with(adminAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rejectionReason": "  La solicitud no cumple los requisitos documentales.  "
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("La solicitud no cumple los requisitos documentales."));
+
+        verify(rejectRequestUseCase).execute(
+                argThat(command -> command.requestId().equals(new RequestId(42L))
+                        && "La solicitud no cumple los requisitos documentales.".equals(command.rejectionReason())),
+                argThat(actor -> actor.role() == Role.ADMIN && actor.userId().equals(new UserId(99L)))
+        );
+    }
+
+    @Test
+    void rejectMustReturn400WhenPayloadIsInvalid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/reject", 42)
+                        .with(adminAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rejectionReason": "abc"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("rejectionReason"));
+    }
+
+    @Test
+    void rejectMustReturn403WhenUseCaseRejectsActor() throws Exception {
+        given(rejectRequestUseCase.execute(any(), any())).willThrow(new UnauthorizedOperationException(Role.STAFF, "reject request"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/reject", 42)
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rejectionReason": "La solicitud no cumple los requisitos documentales."
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
+    }
+
+    @Test
+    void rejectMustReturn404WhenRequestDoesNotExist() throws Exception {
+        given(rejectRequestUseCase.execute(any(), any())).willThrow(new RequestNotFoundException(new RequestId(42L)));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/reject", 42)
+                        .with(adminAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rejectionReason": "La solicitud no cumple los requisitos documentales."
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void rejectMustReturn409WhenLifecycleTransitionIsInvalid() throws Exception {
+        given(rejectRequestUseCase.execute(any(), any())).willThrow(new InvalidStateTransitionException(RequestStatus.CLASSIFIED, RequestStatus.REJECTED));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/requests/{requestId}/reject", 42)
+                        .with(adminAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rejectionReason": "La solicitud no cumple los requisitos documentales."
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Conflict"));
+    }
+
+    @Test
     void listMustBindFiltersAndReturnPagedContract() throws Exception {
         given(listRequestsQuery.execute(any(), any())).willReturn(new RequestPage<>(List.of(sampleSummary()), 1, 1, 0, 20));
 
@@ -851,12 +1039,26 @@ class RequestControllerTest {
                 Optional.of(assignee));
     }
 
+    private static RequestSummary cancelledSummary() {
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.CANCELLED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", null,
+                "Ya no necesito el trámite porque resolví el problema.", null,
+                Optional.empty());
+    }
+
+    private static RequestSummary rejectedSummary() {
+        return sampleSummary(new RequestTypeId(4L), RequestStatus.REJECTED, Priority.HIGH,
+                "Impacta matrícula en menos de 72 horas.", null,
+                null, "La solicitud no cumple los requisitos documentales.",
+                Optional.empty());
+    }
+
     private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
                                                 RequestStatus status,
                                                 Priority priority,
                                                 String priorityJustification,
                                                 Optional<User> assignedTo) {
-        return sampleSummary(requestTypeId, status, priority, priorityJustification, null, assignedTo);
+        return sampleSummary(requestTypeId, status, priority, priorityJustification, null, null, null, assignedTo);
     }
 
     private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
@@ -864,6 +1066,17 @@ class RequestControllerTest {
                                                 Priority priority,
                                                 String priorityJustification,
                                                 String closingObservation,
+                                                Optional<User> assignedTo) {
+        return sampleSummary(requestTypeId, status, priority, priorityJustification, closingObservation, null, null, assignedTo);
+    }
+
+    private static RequestSummary sampleSummary(RequestTypeId requestTypeId,
+                                                RequestStatus status,
+                                                Priority priority,
+                                                String priorityJustification,
+                                                String closingObservation,
+                                                String cancellationReason,
+                                                String rejectionReason,
                                                 Optional<User> assignedTo) {
         var requester = sampleUser(7L, "jperez", Role.STUDENT);
         var request = AcademicRequest.reconstitute(
@@ -875,9 +1088,9 @@ class RequestControllerTest {
                 LocalDate.of(2026, 3, 15),
                 LocalDateTime.of(2026, 3, 10, 8, 30),
                 false,
-                null,
+                rejectionReason,
                 closingObservation,
-                null,
+                cancellationReason,
                 null,
                 requester.getId(),
                 assignedTo.map(User::getId).orElse(null),
