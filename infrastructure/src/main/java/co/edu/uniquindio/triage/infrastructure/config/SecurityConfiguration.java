@@ -60,6 +60,17 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll();
                     authorize.requestMatchers("/actuator/health").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET,
+                            "/api/v1/catalogs/request-types",
+                            "/api/v1/catalogs/request-types/*",
+                            "/api/v1/catalogs/origin-channels",
+                            "/api/v1/catalogs/origin-channels/*").authenticated();
+                    authorize.requestMatchers(HttpMethod.POST,
+                            "/api/v1/catalogs/request-types",
+                            "/api/v1/catalogs/origin-channels").hasRole("ADMIN");
+                    authorize.requestMatchers(HttpMethod.PUT,
+                            "/api/v1/catalogs/request-types/*",
+                            "/api/v1/catalogs/origin-channels/*").hasRole("ADMIN");
 
                     if (docsEnabled && publicDocsEnabled) {
                         authorize.requestMatchers(DOCS_PATHS).permitAll();
