@@ -186,9 +186,10 @@ public class AcademicRequest {
 
     public void cancel(String reason, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CANCELLED);
-        this.cancellationReason = validateReason(reason);
+        var validatedReason = validateReason(reason);
+        this.cancellationReason = validatedReason;
         this.status = RequestStatus.CANCELLED;
-        addHistory(HistoryAction.CANCELLED, reason, timestamp, performedById);
+        addHistory(HistoryAction.CANCELLED, validatedReason, timestamp, performedById);
     }
 
     public void reject(String reason, UserId rejectedById, RequestHistoryId historyId,
@@ -199,9 +200,10 @@ public class AcademicRequest {
     public void reject(String reason, UserId rejectedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.REJECTED);
         Objects.requireNonNull(rejectedById, "El id del usuario que rechaza no puede ser null");
-        this.rejectionReason = validateReason(reason);
+        var validatedReason = validateReason(reason);
+        this.rejectionReason = validatedReason;
         this.status = RequestStatus.REJECTED;
-        addHistory(HistoryAction.REJECTED, reason, timestamp, rejectedById);
+        addHistory(HistoryAction.REJECTED, validatedReason, timestamp, rejectedById);
     }
 
     public void applyRule(BusinessRuleId ruleId) {

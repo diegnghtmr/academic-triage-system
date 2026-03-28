@@ -157,6 +157,107 @@ class AcademicRequestTest {
                 .hasMessageContaining("CLOSED");
     }
 
+    @Test
+    void cancelMustAllowRegisteredRequestAndPersistTrimmedReasonInHistory() {
+        var request = newRequest();
+        var actorId = new UserId(60L);
+        var cancelledAt = LocalDateTime.of(2026, 3, 24, 14, 0);
+
+        request.cancel("  El estudiante resolvió el trámite por otra vía  ", actorId, cancelledAt);
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        assertThat(request.getCancellationReason()).isEqualTo("El estudiante resolvió el trámite por otra vía");
+
+        var historyEntry = request.getHistory().getLast();
+        assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.CANCELLED);
+        assertThat(historyEntry.getObservations()).isEqualTo("El estudiante resolvió el trámite por otra vía");
+        assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
+    }
+
+    @Test
+    void cancelMustAllowClassifiedRequest() {
+        var request = classifiedRequest();
+
+        request.cancel("Solicitud retirada por el solicitante", new UserId(61L), LocalDateTime.of(2026, 3, 24, 14, 5));
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        assertThat(request.getCancellationReason()).isEqualTo("Solicitud retirada por el solicitante");
+    }
+
+    @Test
+    void cancelMustRejectBlankOrOversizedReason() {
+        var blankReasonRequest = newRequest();
+        var oversizedReasonRequest = newRequest();
+        var oversizedReason = "x".repeat(2001);
+
+        assertThatThrownBy(() -> blankReasonRequest.cancel("   ", new UserId(62L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("razón");
+
+        assertThatThrownBy(() -> oversizedReasonRequest.cancel(oversizedReason, new UserId(62L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("entre 5 y 2000");
+    }
+
+    @Test
+    void cancelMustRejectRequestsOutsideRegisteredOrClassifiedStates() {
+        var request = inProgressRequest();
+
+        assertThatThrownBy(() -> request.cancel("Motivo válido", new UserId(63L), LocalDateTime.now()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("CANCELLED");
+    }
+
+    @Test
+    void rejectMustAllowRegisteredRequestAndPersistTrimmedReasonInHistory() {
+        var request = newRequest();
+        var actorId = new UserId(64L);
+        var rejectedAt = LocalDateTime.of(2026, 3, 24, 14, 10);
+
+        request.reject("  La documentación aportada no cumple los requisitos mínimos  ", actorId, rejectedAt);
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.REJECTED);
+        assertThat(request.getRejectionReason()).isEqualTo("La documentación aportada no cumple los requisitos mínimos");
+
+        var historyEntry = request.getHistory().getLast();
+        assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.REJECTED);
+        assertThat(historyEntry.getObservations()).isEqualTo("La documentación aportada no cumple los requisitos mínimos");
+        assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
+    }
+
+    @Test
+    void rejectMustRequireActorId() {
+        var request = newRequest();
+
+        assertThatThrownBy(() -> request.reject("Motivo válido", null, LocalDateTime.now()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("rechaza");
+    }
+
+    @Test
+    void rejectMustRejectBlankOrOversizedReason() {
+        var blankReasonRequest = newRequest();
+        var oversizedReasonRequest = newRequest();
+        var oversizedReason = "x".repeat(2001);
+
+        assertThatThrownBy(() -> blankReasonRequest.reject("   ", new UserId(65L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("razón");
+
+        assertThatThrownBy(() -> oversizedReasonRequest.reject(oversizedReason, new UserId(65L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("entre 5 y 2000");
+    }
+
+    @Test
+    void rejectMustRejectRequestsOutsideRegisteredState() {
+        var request = classifiedRequest();
+
+        assertThatThrownBy(() -> request.reject("Motivo válido", new UserId(66L), LocalDateTime.now()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("REJECTED");
+    }
+
     private AcademicRequest newRequest() {
         return new AcademicRequest(
                 new RequestId(1L),

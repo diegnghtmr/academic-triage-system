@@ -54,4 +54,32 @@ class TriageRequestCommandTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Las observaciones no pueden tener más de 1000 caracteres");
     }
+
+    @Test
+    void cancelCommandMustTrimAndRequireReasonWithinCanonicalBounds() {
+        var command = new CancelRequestCommand(new RequestId(13L), "  El trámite ya no es necesario  ");
+
+        assertThat(command.cancellationReason()).isEqualTo("El trámite ya no es necesario");
+    }
+
+    @Test
+    void cancelCommandMustRejectBlankReason() {
+        assertThatThrownBy(() -> new CancelRequestCommand(new RequestId(13L), "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("La razón de cancelación no puede ser null o vacía");
+    }
+
+    @Test
+    void rejectCommandMustTrimAndRequireReasonWithinCanonicalBounds() {
+        var command = new RejectRequestCommand(new RequestId(14L), "  Faltan soportes obligatorios  ");
+
+        assertThat(command.rejectionReason()).isEqualTo("Faltan soportes obligatorios");
+    }
+
+    @Test
+    void rejectCommandMustRejectReasonLongerThanCanonicalLimit() {
+        assertThatThrownBy(() -> new RejectRequestCommand(new RequestId(14L), "x".repeat(2001)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("La razón de rechazo debe tener entre 5 y 2000 caracteres");
+    }
 }
