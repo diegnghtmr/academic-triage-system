@@ -3,20 +3,24 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CancelRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RejectRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
@@ -48,6 +52,8 @@ class RequestController {
     private final AssignRequestUseCase assignRequestUseCase;
     private final AttendRequestUseCase attendRequestUseCase;
     private final CloseRequestUseCase closeRequestUseCase;
+    private final CancelRequestUseCase cancelRequestUseCase;
+    private final RejectRequestUseCase rejectRequestUseCase;
     private final ListRequestsQuery listRequestsQuery;
     private final GetRequestDetailQuery getRequestDetailQuery;
     private final RequestRestMapper requestRestMapper;
@@ -59,6 +65,8 @@ class RequestController {
                              AssignRequestUseCase assignRequestUseCase,
                              AttendRequestUseCase attendRequestUseCase,
                              CloseRequestUseCase closeRequestUseCase,
+                             CancelRequestUseCase cancelRequestUseCase,
+                             RejectRequestUseCase rejectRequestUseCase,
                              ListRequestsQuery listRequestsQuery,
                              GetRequestDetailQuery getRequestDetailQuery,
                              RequestRestMapper requestRestMapper,
@@ -69,6 +77,8 @@ class RequestController {
         this.assignRequestUseCase = Objects.requireNonNull(assignRequestUseCase);
         this.attendRequestUseCase = Objects.requireNonNull(attendRequestUseCase);
         this.closeRequestUseCase = Objects.requireNonNull(closeRequestUseCase);
+        this.cancelRequestUseCase = Objects.requireNonNull(cancelRequestUseCase);
+        this.rejectRequestUseCase = Objects.requireNonNull(rejectRequestUseCase);
         this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
         this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
         this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
@@ -135,6 +145,28 @@ class RequestController {
         var actor = authenticatedActorMapper.toRequiredActor(authentication);
         var response = requestRestMapper.toResponse(
                 closeRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/cancel")
+    public ResponseEntity<RequestResponse> cancel(@PathVariable("requestId") Long requestId,
+                                                  @Valid @RequestBody CancelRequestRequest request,
+                                                  Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                cancelRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{requestId}/reject")
+    public ResponseEntity<RequestResponse> reject(@PathVariable("requestId") Long requestId,
+                                                  @Valid @RequestBody RejectRequestRequest request,
+                                                  Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var response = requestRestMapper.toResponse(
+                rejectRequestUseCase.execute(requestRestMapper.toCommand(requestId, request), actor)
         );
         return ResponseEntity.ok(response);
     }

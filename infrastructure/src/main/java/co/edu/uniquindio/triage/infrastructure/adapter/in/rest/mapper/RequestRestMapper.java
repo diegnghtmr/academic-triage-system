@@ -2,12 +2,14 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
 
 import co.edu.uniquindio.triage.application.port.in.command.request.AssignRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.AttendRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.CancelRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.ClassifyRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.CloseRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDetailQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.PrioritizeRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.command.request.RejectRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
@@ -24,12 +26,14 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.Origi
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.RequestTypeResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CancelRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RejectRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
 import org.mapstruct.Mapper;
@@ -92,6 +96,22 @@ public interface RequestRestMapper {
         return new CloseRequestCommand(
                 new RequestId(requestId),
                 request.closingObservation()
+        );
+    }
+
+    default CancelRequestCommand toCommand(Long requestId, CancelRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new CancelRequestCommand(
+                new RequestId(requestId),
+                request.cancellationReason()
+        );
+    }
+
+    default RejectRequestCommand toCommand(Long requestId, RejectRequestRequest request) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new RejectRequestCommand(
+                new RequestId(requestId),
+                request.rejectionReason()
         );
     }
 

@@ -4,12 +4,14 @@ import co.edu.uniquindio.triage.application.port.in.auth.LoginUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.RegisterUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
@@ -24,12 +26,14 @@ import co.edu.uniquindio.triage.application.service.auth.LoginService;
 import co.edu.uniquindio.triage.application.service.auth.RegisterService;
 import co.edu.uniquindio.triage.application.service.request.AssignRequestService;
 import co.edu.uniquindio.triage.application.service.request.AttendRequestService;
+import co.edu.uniquindio.triage.application.service.request.CancelRequestService;
 import co.edu.uniquindio.triage.application.service.request.ClassifyRequestService;
 import co.edu.uniquindio.triage.application.service.request.CloseRequestService;
 import co.edu.uniquindio.triage.application.service.request.CreateRequestService;
 import co.edu.uniquindio.triage.application.service.request.GetRequestDetailService;
 import co.edu.uniquindio.triage.application.service.request.ListRequestsService;
 import co.edu.uniquindio.triage.application.service.request.PrioritizeRequestService;
+import co.edu.uniquindio.triage.application.service.request.RejectRequestService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -142,6 +146,36 @@ class BeanConfiguration {
                                             LoadUserAuthPort loadUserAuthPort,
                                             SaveRequestPort saveRequestPort) {
         return new CloseRequestService(
+                loadRequestPort,
+                loadRequestTypePort,
+                loadOriginChannelPort,
+                loadUserAuthPort,
+                saveRequestPort
+        );
+    }
+
+    @Bean
+    CancelRequestUseCase cancelRequestUseCase(LoadRequestPort loadRequestPort,
+                                              LoadRequestTypePort loadRequestTypePort,
+                                              LoadOriginChannelPort loadOriginChannelPort,
+                                              LoadUserAuthPort loadUserAuthPort,
+                                              SaveRequestPort saveRequestPort) {
+        return new CancelRequestService(
+                loadRequestPort,
+                loadRequestTypePort,
+                loadOriginChannelPort,
+                loadUserAuthPort,
+                saveRequestPort
+        );
+    }
+
+    @Bean
+    RejectRequestUseCase rejectRequestUseCase(LoadRequestPort loadRequestPort,
+                                              LoadRequestTypePort loadRequestTypePort,
+                                              LoadOriginChannelPort loadOriginChannelPort,
+                                              LoadUserAuthPort loadUserAuthPort,
+                                              SaveRequestPort saveRequestPort) {
+        return new RejectRequestService(
                 loadRequestPort,
                 loadRequestTypePort,
                 loadOriginChannelPort,
