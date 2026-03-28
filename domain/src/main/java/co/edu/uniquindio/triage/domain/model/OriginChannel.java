@@ -15,6 +15,16 @@ public class OriginChannel {
         this.active = active;
     }
 
+    private OriginChannel(String name) {
+        this.id = null;
+        this.name = validateName(name);
+        this.active = true;
+    }
+
+    public static OriginChannel createNew(String name) {
+        return new OriginChannel(name);
+    }
+
     private String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("El nombre no puede ser null o vacío");
