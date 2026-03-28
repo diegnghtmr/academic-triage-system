@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice;
 
 import co.edu.uniquindio.triage.domain.exception.AuthenticationFailedException;
+import co.edu.uniquindio.triage.domain.exception.DuplicateCatalogEntryException;
 import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.BusinessRuleViolationException;
@@ -22,8 +23,8 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(DuplicateUserException.class)
-    ResponseEntity<ProblemDetail> handleDuplicate(DuplicateUserException exception) {
+    @ExceptionHandler({DuplicateUserException.class, DuplicateCatalogEntryException.class})
+    ResponseEntity<ProblemDetail> handleDuplicate(RuntimeException exception) {
         return build(HttpStatus.CONFLICT, exception.getMessage(), null);
     }
 

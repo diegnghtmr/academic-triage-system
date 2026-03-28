@@ -755,6 +755,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestTypeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -783,6 +785,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -855,6 +859,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OriginChannelResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -883,6 +889,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
         '404':
           $ref: '#/components/responses/NotFound'
 
