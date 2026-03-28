@@ -15,6 +15,12 @@ public interface CatalogPersistenceMapper {
     @Mapping(target = "id", expression = "java(new RequestTypeId(entity.getId()))")
     RequestType toDomain(RequestTypeJpaEntity entity);
 
+    @Mapping(target = "id", expression = "java(requestType.getId() != null ? requestType.getId().value() : null)")
+    RequestTypeJpaEntity toEntity(RequestType requestType);
+
     @Mapping(target = "id", expression = "java(new OriginChannelId(entity.getId()))")
     OriginChannel toDomain(OriginChannelJpaEntity entity);
+
+    @Mapping(target = "id", expression = "java(originChannel.getId() != null ? originChannel.getId().value() : null)")
+    OriginChannelJpaEntity toEntity(OriginChannel originChannel);
 }
