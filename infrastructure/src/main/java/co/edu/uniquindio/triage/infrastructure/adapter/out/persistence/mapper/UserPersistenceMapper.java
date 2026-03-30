@@ -27,7 +27,7 @@ public class UserPersistenceMapper {
 
     public UserJpaEntity toEntity(User user) {
         return new UserJpaEntity(
-                user.getId() != null ? user.getId().value() : null,
+                user.getId().map(id -> id.value()).orElse(null),
                 user.getUsername().value(),
                 user.getEmail().value(),
                 user.getIdentification().value(),

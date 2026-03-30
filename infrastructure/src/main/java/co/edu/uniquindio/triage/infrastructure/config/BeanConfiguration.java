@@ -1,5 +1,8 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
+import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
+import co.edu.uniquindio.triage.application.port.in.user.GetUsersQuery;
+import co.edu.uniquindio.triage.application.port.in.user.UpdateUserUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.LoginUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.RegisterUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.CreateOriginChannelUseCase;
@@ -38,11 +41,29 @@ import co.edu.uniquindio.triage.application.service.catalog.ListRequestTypesServ
 import co.edu.uniquindio.triage.application.service.catalog.UpdateOriginChannelService;
 import co.edu.uniquindio.triage.application.service.catalog.UpdateRequestTypeService;
 import co.edu.uniquindio.triage.application.service.request.*;
+import co.edu.uniquindio.triage.application.service.user.GetUserByIdService;
+import co.edu.uniquindio.triage.application.service.user.GetUsersService;
+import co.edu.uniquindio.triage.application.service.user.UpdateUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 class BeanConfiguration {
+
+    @Bean
+    GetUsersQuery getUsersQuery(LoadUsersPort loadUsersPort) {
+        return new GetUsersService(loadUsersPort);
+    }
+
+    @Bean
+    GetUserByIdQuery getUserByIdQuery(LoadUserAuthPort loadUserAuthPort) {
+        return new GetUserByIdService(loadUserAuthPort);
+    }
+
+    @Bean
+    UpdateUserUseCase updateUserUseCase(LoadUserAuthPort loadUserAuthPort, SaveUserPort saveUserPort) {
+        return new UpdateUserService(loadUserAuthPort, saveUserPort);
+    }
 
     @Bean
     ListBusinessRulesQueryUseCase listBusinessRulesQueryUseCase(LoadBusinessRulePort loadBusinessRulePort) {

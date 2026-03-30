@@ -179,7 +179,7 @@ class RequestHistoryControllerTest {
         AcademicRequest request = new AcademicRequest(
                 id,
                 "Description test length long enough",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 new OriginChannelId(1L),
                 new RequestTypeId(1L),
                 null,

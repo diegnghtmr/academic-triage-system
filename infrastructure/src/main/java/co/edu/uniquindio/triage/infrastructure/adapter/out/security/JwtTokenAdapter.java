@@ -29,7 +29,7 @@ public class JwtTokenAdapter implements TokenProviderPort {
 
     @Override
     public AuthToken issue(User user) {
-        if (user.getId() == null) {
+        if (user.getId().isEmpty()) {
             throw new IllegalArgumentException("No se puede emitir JWT para un usuario sin id persistido");
         }
 
@@ -37,7 +37,7 @@ public class JwtTokenAdapter implements TokenProviderPort {
         var expiresAt = issuedAt.plusMillis(expirationMs);
         var token = Jwts.builder()
                 .subject(user.getUsername().value())
-                .claim("uid", user.getId().value())
+                .claim("uid", user.getId().orElseThrow().value())
                 .claim("role", user.getRole().name())
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiresAt))
