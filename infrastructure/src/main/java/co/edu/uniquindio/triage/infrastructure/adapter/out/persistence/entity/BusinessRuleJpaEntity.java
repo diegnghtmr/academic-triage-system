@@ -12,7 +12,7 @@ import lombok.*;
 @Builder
 @EqualsAndHashCode(of = "id")
 @ToString
-class BusinessRuleJpaEntity {
+public class BusinessRuleJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

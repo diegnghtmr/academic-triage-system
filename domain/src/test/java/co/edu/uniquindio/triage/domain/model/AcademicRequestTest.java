@@ -258,6 +258,39 @@ class AcademicRequestTest {
                 .hasMessageContaining("REJECTED");
     }
 
+    @Test
+    void addInternalNoteMustAppendHistoryWithoutChangingStatus() {
+        var request = newRequest();
+        var initialStatus = request.getStatus();
+        var actorId = new UserId(70L);
+        var timestamp = LocalDateTime.of(2026, 3, 24, 15, 0);
+        var note = "Esta es una nota interna de seguimiento";
+
+        request.addInternalNote(note, actorId, timestamp);
+
+        assertThat(request.getStatus()).isEqualTo(initialStatus);
+        var historyEntry = request.getHistory().getLast();
+        assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.INTERNAL_NOTE);
+        assertThat(historyEntry.getObservations()).isEqualTo(note);
+        assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
+        assertThat(historyEntry.getTimestamp()).isEqualTo(timestamp);
+    }
+
+    @Test
+    void addInternalNoteMustRejectBlankOrOversizedNote() {
+        var request = newRequest();
+        var actorId = new UserId(71L);
+        var oversizedNote = "x".repeat(2001);
+
+        assertThatThrownBy(() -> request.addInternalNote("   ", actorId, LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nota interna");
+
+        assertThatThrownBy(() -> request.addInternalNote(oversizedNote, actorId, LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("entre 1 y 2000");
+    }
+
     private AcademicRequest newRequest() {
         return new AcademicRequest(
                 new RequestId(1L),

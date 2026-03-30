@@ -206,6 +206,11 @@ public class AcademicRequest {
         addHistory(HistoryAction.REJECTED, validatedReason, timestamp, rejectedById);
     }
 
+    public void addInternalNote(String note, UserId performedById, LocalDateTime timestamp) {
+        var validatedNote = validateInternalNote(note);
+        addHistory(HistoryAction.INTERNAL_NOTE, validatedNote, timestamp, performedById);
+    }
+
     public void applyRule(BusinessRuleId ruleId) {
         Objects.requireNonNull(ruleId, "El ruleId no puede ser null");
         if (!this.appliedRuleIds.contains(ruleId)) {
@@ -393,6 +398,17 @@ public class AcademicRequest {
         String trimmed = reason.trim();
         if (trimmed.length() < 5 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La razón debe tener entre 5 y 2000 caracteres");
+        }
+        return trimmed;
+    }
+
+    private String validateInternalNote(String note) {
+        if (note == null || note.isBlank()) {
+            throw new IllegalArgumentException("La nota interna no puede ser null o vacía");
+        }
+        String trimmed = note.trim();
+        if (trimmed.length() < 1 || trimmed.length() > 2000) {
+            throw new IllegalArgumentException("La nota interna debe tener entre 1 y 2000 caracteres");
         }
         return trimmed;
     }
