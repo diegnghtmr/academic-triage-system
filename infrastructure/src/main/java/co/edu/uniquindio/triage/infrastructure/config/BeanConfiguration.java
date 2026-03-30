@@ -20,20 +20,13 @@ import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuer
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.NextRequestIdPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveOriginChannelPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestTypePort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveUserPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SearchRequestPort;
+import co.edu.uniquindio.triage.application.port.in.businessrule.*;
+import co.edu.uniquindio.triage.application.port.out.persistence.*;
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.application.service.auth.LoginService;
 import co.edu.uniquindio.triage.application.service.auth.RegisterService;
+import co.edu.uniquindio.triage.application.service.businessrule.*;
 import co.edu.uniquindio.triage.application.service.catalog.CreateOriginChannelService;
 import co.edu.uniquindio.triage.application.service.catalog.CreateRequestTypeService;
 import co.edu.uniquindio.triage.application.service.catalog.GetOriginChannelService;
@@ -42,21 +35,42 @@ import co.edu.uniquindio.triage.application.service.catalog.ListOriginChannelsSe
 import co.edu.uniquindio.triage.application.service.catalog.ListRequestTypesService;
 import co.edu.uniquindio.triage.application.service.catalog.UpdateOriginChannelService;
 import co.edu.uniquindio.triage.application.service.catalog.UpdateRequestTypeService;
-import co.edu.uniquindio.triage.application.service.request.AssignRequestService;
-import co.edu.uniquindio.triage.application.service.request.AttendRequestService;
-import co.edu.uniquindio.triage.application.service.request.CancelRequestService;
-import co.edu.uniquindio.triage.application.service.request.ClassifyRequestService;
-import co.edu.uniquindio.triage.application.service.request.CloseRequestService;
-import co.edu.uniquindio.triage.application.service.request.CreateRequestService;
-import co.edu.uniquindio.triage.application.service.request.GetRequestDetailService;
-import co.edu.uniquindio.triage.application.service.request.ListRequestsService;
-import co.edu.uniquindio.triage.application.service.request.PrioritizeRequestService;
-import co.edu.uniquindio.triage.application.service.request.RejectRequestService;
+import co.edu.uniquindio.triage.application.service.request.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 class BeanConfiguration {
+
+    @Bean
+    ListBusinessRulesQueryUseCase listBusinessRulesQueryUseCase(LoadBusinessRulePort loadBusinessRulePort) {
+        return new ListBusinessRulesService(loadBusinessRulePort);
+    }
+
+    @Bean
+    GetBusinessRuleQueryUseCase getBusinessRuleQueryUseCase(LoadBusinessRulePort loadBusinessRulePort) {
+        return new GetBusinessRuleService(loadBusinessRulePort);
+    }
+
+    @Bean
+    CreateBusinessRuleUseCase createBusinessRuleUseCase(SaveBusinessRulePort saveBusinessRulePort,
+                                                        LoadBusinessRulePort loadBusinessRulePort,
+                                                        LoadRequestTypePort loadRequestTypePort) {
+        return new CreateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort);
+    }
+
+    @Bean
+    UpdateBusinessRuleUseCase updateBusinessRuleUseCase(SaveBusinessRulePort saveBusinessRulePort,
+                                                        LoadBusinessRulePort loadBusinessRulePort,
+                                                        LoadRequestTypePort loadRequestTypePort) {
+        return new UpdateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort);
+    }
+
+    @Bean
+    DeactivateBusinessRuleUseCase deactivateBusinessRuleUseCase(LoadBusinessRulePort loadBusinessRulePort,
+                                                                SaveBusinessRulePort saveBusinessRulePort) {
+        return new DeactivateBusinessRuleService(loadBusinessRulePort, saveBusinessRulePort);
+    }
 
     @Bean
     ListRequestTypesQuery listRequestTypesQuery(LoadRequestTypePort loadRequestTypePort) {
