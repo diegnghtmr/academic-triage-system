@@ -159,7 +159,7 @@ class RegisterServiceTest {
 
         @Override
         public User save(User user) {
-            var userId = user.getId() != null ? user.getId().value() : sequence.getAndIncrement();
+            var userId = user.getId().isPresent() ? user.getId().orElseThrow().value() : sequence.getAndIncrement();
             var persisted = User.reconstitute(
                     new UserId(userId),
                     user.getUsername(),

@@ -70,7 +70,7 @@ class AttendRequestServiceTest {
         var assignee = persistedUser(15L, "staff.owner", Role.STAFF, true);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = inProgressRequest(requester.getId(), assignee, requestType.getId(), originChannel.getId(), actor.userId());
+        var request = inProgressRequest(requester.getId().orElseThrow(), assignee, requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
         loadRequestTypePort.store(requestType);
         loadOriginChannelPort.store(originChannel);
@@ -125,7 +125,7 @@ class AttendRequestServiceTest {
         var requester = persistedUser(7L, "student", Role.STUDENT, true);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = prioritizedRequest(requester.getId(), requestType.getId(), originChannel.getId(), actor.userId());
+        var request = prioritizedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -257,7 +257,7 @@ class AttendRequestServiceTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
     }
 

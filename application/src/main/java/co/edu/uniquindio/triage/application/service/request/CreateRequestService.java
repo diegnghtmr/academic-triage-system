@@ -59,7 +59,7 @@ public class CreateRequestService implements CreateRequestUseCase {
         var request = new AcademicRequest(
                 nextRequestIdPort.nextId(),
                 command.description(),
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 command.originChannelId(),
                 command.requestTypeId(),
                 command.deadline(),

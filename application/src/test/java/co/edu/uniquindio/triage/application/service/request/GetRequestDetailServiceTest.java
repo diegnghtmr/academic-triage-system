@@ -76,7 +76,7 @@ class GetRequestDetailServiceTest {
         var request = new AcademicRequest(
                 new RequestId(42L),
                 "Necesito un cupo adicional para la materia",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 new OriginChannelId(2L),
                 new RequestTypeId(3L),
                 null,

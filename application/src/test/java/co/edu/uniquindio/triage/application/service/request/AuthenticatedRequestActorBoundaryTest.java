@@ -135,7 +135,7 @@ class AuthenticatedRequestActorBoundaryTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
 
         int loadByIdCalls() {

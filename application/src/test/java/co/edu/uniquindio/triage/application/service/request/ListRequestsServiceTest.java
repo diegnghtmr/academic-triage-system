@@ -2,7 +2,7 @@ package co.edu.uniquindio.triage.application.service.request;
 
 import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
-import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
+import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
 import co.edu.uniquindio.triage.application.port.out.persistence.SearchRequestPort;
@@ -72,10 +72,10 @@ class ListRequestsServiceTest {
 
     private static final class CapturingSearchRequestPort implements SearchRequestPort {
         private RequestSearchCriteria criteria;
-        private final RequestPage<RequestSummary> result = new RequestPage<>(java.util.List.of(), 0, 0, 0, 20);
+        private final Page<RequestSummary> result = new Page<>(java.util.List.of(), 0, 0, 0, 20);
 
         @Override
-        public RequestPage<RequestSummary> search(RequestSearchCriteria criteria) {
+        public Page<RequestSummary> search(RequestSearchCriteria criteria) {
             this.criteria = criteria;
             return result;
         }

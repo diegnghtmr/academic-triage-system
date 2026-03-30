@@ -68,7 +68,7 @@ class RejectRequestServiceTest {
         var actor = new AuthenticatedActor(new UserId(99L), "admin.actor", Role.ADMIN);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = registeredRequest(requester.getId(), requestType.getId(), originChannel.getId());
+        var request = registeredRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId());
         loadRequestPort.store(request);
         loadRequestTypePort.store(requestType);
         loadOriginChannelPort.store(originChannel);
@@ -95,7 +95,7 @@ class RejectRequestServiceTest {
     @Test
     void staffAndStudentMustNotRejectExistingRequest() {
         var requester = persistedUser(7L, "student.owner", Role.STUDENT, true);
-        var request = registeredRequest(requester.getId(), new RequestTypeId(4L), new OriginChannelId(2L));
+        var request = registeredRequest(requester.getId().orElseThrow(), new RequestTypeId(4L), new OriginChannelId(2L));
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -128,7 +128,7 @@ class RejectRequestServiceTest {
     void rejectMustPropagateLifecycleConflictWhenRequestIsNotRegistered() {
         var requester = persistedUser(7L, "student.owner", Role.STUDENT, true);
         var actor = new AuthenticatedActor(new UserId(99L), "admin.actor", Role.ADMIN);
-        var request = classifiedRequest(requester.getId(), new RequestTypeId(4L), new OriginChannelId(2L), actor.userId());
+        var request = classifiedRequest(requester.getId().orElseThrow(), new RequestTypeId(4L), new OriginChannelId(2L), actor.userId());
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -255,7 +255,7 @@ class RejectRequestServiceTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
     }
 

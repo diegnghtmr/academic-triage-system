@@ -67,7 +67,7 @@ class ClassifyRequestServiceTest {
         var originalType = new RequestType(new RequestTypeId(3L), "Cupo", "Solicitud de cupo", true);
         var newType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = registeredRequest(requester.getId(), originalType.getId(), originChannel.getId());
+        var request = registeredRequest(requester.getId().orElseThrow(), originalType.getId(), originChannel.getId());
         loadRequestPort.store(request);
         loadRequestTypePort.store(newType);
         loadOriginChannelPort.store(originChannel);
@@ -119,7 +119,7 @@ class ClassifyRequestServiceTest {
         var requester = persistedUser(7L, "student", Role.STUDENT, true);
         var originalType = new RequestType(new RequestTypeId(3L), "Cupo", "Solicitud de cupo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = registeredRequest(requester.getId(), originalType.getId(), originChannel.getId());
+        var request = registeredRequest(requester.getId().orElseThrow(), originalType.getId(), originChannel.getId());
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -238,7 +238,7 @@ class ClassifyRequestServiceTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
     }
 

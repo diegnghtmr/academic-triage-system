@@ -66,10 +66,10 @@ class CancelRequestServiceTest {
     @Test
     void ownerStudentMustCancelEligibleRequestAndReturnReconstructedSummary() {
         var requester = persistedUser(7L, "student.owner", Role.STUDENT, true);
-        var actor = new AuthenticatedActor(requester.getId(), requester.getUsername().value(), Role.STUDENT);
+        var actor = new AuthenticatedActor(requester.getId().orElseThrow(), requester.getUsername().value(), Role.STUDENT);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = classifiedRequest(requester.getId(), requestType.getId(), originChannel.getId(), new UserId(15L));
+        var request = classifiedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), new UserId(15L));
         loadRequestPort.store(request);
         loadRequestTypePort.store(requestType);
         loadOriginChannelPort.store(originChannel);
@@ -102,7 +102,7 @@ class CancelRequestServiceTest {
         loadOriginChannelPort.store(originChannel);
         loadUserAuthPort.store(requester);
 
-        var staffRequest = registeredRequest(new RequestId(42L), requester.getId(), requestType.getId(), originChannel.getId());
+        var staffRequest = registeredRequest(new RequestId(42L), requester.getId().orElseThrow(), requestType.getId(), originChannel.getId());
         loadRequestPort.store(staffRequest);
         var staffActor = new AuthenticatedActor(new UserId(90L), "staff.actor", Role.STAFF);
 
@@ -114,7 +114,7 @@ class CancelRequestServiceTest {
         assertThat(staffResult.request().getStatus()).isEqualTo(RequestStatus.CANCELLED);
         assertThat(staffResult.request().getHistory().getLast().getPerformedById()).isEqualTo(staffActor.userId());
 
-        var adminRequest = registeredRequest(new RequestId(43L), requester.getId(), requestType.getId(), originChannel.getId());
+        var adminRequest = registeredRequest(new RequestId(43L), requester.getId().orElseThrow(), requestType.getId(), originChannel.getId());
         loadRequestPort.store(adminRequest);
         var adminActor = new AuthenticatedActor(new UserId(91L), "admin.actor", Role.ADMIN);
 
@@ -132,7 +132,7 @@ class CancelRequestServiceTest {
     void nonOwnerStudentMustNotCancelExistingRequest() {
         var requester = persistedUser(7L, "student.owner", Role.STUDENT, true);
         var outsider = new AuthenticatedActor(new UserId(99L), "student.other", Role.STUDENT);
-        var request = registeredRequest(new RequestId(42L), requester.getId(), new RequestTypeId(4L), new OriginChannelId(2L));
+        var request = registeredRequest(new RequestId(42L), requester.getId().orElseThrow(), new RequestTypeId(4L), new OriginChannelId(2L));
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -159,8 +159,8 @@ class CancelRequestServiceTest {
     @Test
     void cancelMustPropagateLifecycleConflictWhenRequestIsNotCancellable() {
         var requester = persistedUser(7L, "student.owner", Role.STUDENT, true);
-        var actor = new AuthenticatedActor(requester.getId(), requester.getUsername().value(), Role.STUDENT);
-        var request = inProgressRequest(requester.getId(), persistedUser(15L, "staff.owner", Role.STAFF, true), new RequestTypeId(4L), new OriginChannelId(2L), new UserId(15L));
+        var actor = new AuthenticatedActor(requester.getId().orElseThrow(), requester.getUsername().value(), Role.STUDENT);
+        var request = inProgressRequest(requester.getId().orElseThrow(), persistedUser(15L, "staff.owner", Role.STAFF, true), new RequestTypeId(4L), new OriginChannelId(2L), new UserId(15L));
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -299,7 +299,7 @@ class CancelRequestServiceTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
     }
 

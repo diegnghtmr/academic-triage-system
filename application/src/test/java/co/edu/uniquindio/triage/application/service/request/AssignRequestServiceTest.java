@@ -69,7 +69,7 @@ class AssignRequestServiceTest {
         var assignee = persistedUser(15L, "staff.owner", Role.STAFF, true);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = prioritizedRequest(requester.getId(), requestType.getId(), originChannel.getId(), actor.userId());
+        var request = prioritizedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
         loadRequestTypePort.store(requestType);
         loadOriginChannelPort.store(originChannel);
@@ -77,16 +77,16 @@ class AssignRequestServiceTest {
         loadUserAuthPort.store(assignee);
 
         var result = service.execute(
-                new AssignRequestCommand(request.getId(), assignee.getId(), "  Asignada a mesa especializada  "),
+                new AssignRequestCommand(request.getId(), assignee.getId().orElseThrow(), "  Asignada a mesa especializada  "),
                 actor
         );
 
         assertThat(result.request().getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
-        assertThat(result.request().getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(result.request().getResponsibleId()).isEqualTo(assignee.getId().orElseThrow());
         assertThat(result.request().getHistory()).hasSize(4);
         assertThat(result.request().getHistory().getLast().getAction()).isEqualTo(HistoryAction.ASSIGNED);
         assertThat(result.request().getHistory().getLast().getPerformedById()).isEqualTo(actor.userId());
-        assertThat(result.request().getHistory().getLast().getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(result.request().getHistory().getLast().getResponsibleId()).isEqualTo(assignee.getId().orElseThrow());
         assertThat(result.request().getHistory().getLast().getObservations()).isEqualTo("Asignada a mesa especializada");
         assertThat(result.requestType()).isEqualTo(requestType);
         assertThat(result.originChannel()).isEqualTo(originChannel);
@@ -125,7 +125,7 @@ class AssignRequestServiceTest {
         var requester = persistedUser(7L, "student", Role.STUDENT, true);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = prioritizedRequest(requester.getId(), requestType.getId(), originChannel.getId(), actor.userId());
+        var request = prioritizedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
 
         assertThatThrownBy(() -> service.execute(
@@ -144,12 +144,12 @@ class AssignRequestServiceTest {
         var assignee = persistedUser(15L, "staff.owner", Role.STAFF, false);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = prioritizedRequest(requester.getId(), requestType.getId(), originChannel.getId(), actor.userId());
+        var request = prioritizedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
         loadUserAuthPort.store(assignee);
 
         assertThatThrownBy(() -> service.execute(
-                new AssignRequestCommand(request.getId(), assignee.getId(), null),
+                new AssignRequestCommand(request.getId(), assignee.getId().orElseThrow(), null),
                 actor
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("activo");
@@ -164,12 +164,12 @@ class AssignRequestServiceTest {
         var assignee = persistedUser(15L, "student.owner", Role.STUDENT, true);
         var requestType = new RequestType(new RequestTypeId(4L), "Homologación", "Cambio de tipo", true);
         var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
-        var request = prioritizedRequest(requester.getId(), requestType.getId(), originChannel.getId(), actor.userId());
+        var request = prioritizedRequest(requester.getId().orElseThrow(), requestType.getId(), originChannel.getId(), actor.userId());
         loadRequestPort.store(request);
         loadUserAuthPort.store(assignee);
 
         assertThatThrownBy(() -> service.execute(
-                new AssignRequestCommand(request.getId(), assignee.getId(), null),
+                new AssignRequestCommand(request.getId(), assignee.getId().orElseThrow(), null),
                 actor
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("rol STAFF");
@@ -288,7 +288,7 @@ class AssignRequestServiceTest {
         }
 
         void store(User user) {
-            users.put(user.getId().value(), user);
+            users.put(user.getId().orElseThrow().value(), user);
         }
     }
 
