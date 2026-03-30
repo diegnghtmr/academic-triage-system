@@ -1,10 +1,10 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 
 import co.edu.uniquindio.triage.application.port.in.common.Page;
-import co.edu.uniquindio.triage.application.port.in.user.command.GetUsersQueryModel;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUsersPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveUserPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.UserSearchCriteria;
 import co.edu.uniquindio.triage.domain.model.Email;
 import co.edu.uniquindio.triage.domain.model.Identification;
 import co.edu.uniquindio.triage.domain.model.User;
@@ -43,10 +43,10 @@ public class UserPersistenceAdapter implements LoadUserAuthPort, SaveUserPort, L
     }
 
     @Override
-    public Page<User> loadAll(GetUsersQueryModel query) {
+    public Page<User> loadAll(UserSearchCriteria criteria) {
         var page = userJpaRepository.findAll(
-                UserJpaSpecification.withModel(query),
-                PageRequest.of(query.page(), query.size(), toSort(query.sort()))
+                UserJpaSpecification.withCriteria(criteria),
+                PageRequest.of(criteria.page(), criteria.size(), toSort(criteria.sort()))
         );
 
         var content = page.getContent().stream()
