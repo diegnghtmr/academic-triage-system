@@ -1,12 +1,15 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AddInternalNoteUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
+import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
@@ -126,6 +129,12 @@ class RequestControllerTest {
 
     @MockitoBean
     private GetRequestDetailQuery getRequestDetailQuery;
+
+    @MockitoBean
+    private GetRequestHistoryQuery getRequestHistoryQuery;
+
+    @MockitoBean
+    private AddInternalNoteUseCase addInternalNoteUseCase;
 
     @Test
     void createMustReturn201WithLocationAndResponseBody() throws Exception {

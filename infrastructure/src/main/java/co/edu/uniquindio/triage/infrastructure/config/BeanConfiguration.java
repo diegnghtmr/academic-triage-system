@@ -10,6 +10,7 @@ import co.edu.uniquindio.triage.application.port.in.catalog.ListOriginChannelsQu
 import co.edu.uniquindio.triage.application.port.in.catalog.ListRequestTypesQuery;
 import co.edu.uniquindio.triage.application.port.in.catalog.UpdateOriginChannelUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.UpdateRequestTypeUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.AddInternalNoteUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
@@ -17,6 +18,7 @@ import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCa
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
+import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
@@ -243,6 +245,18 @@ class BeanConfiguration {
                 loadUserAuthPort,
                 saveRequestPort
         );
+    }
+
+    @Bean
+    GetRequestHistoryQuery getRequestHistoryQuery(LoadRequestPort loadRequestPort,
+                                                  LoadRequestHistoryPort loadRequestHistoryPort) {
+        return new GetRequestHistoryService(loadRequestPort, loadRequestHistoryPort);
+    }
+
+    @Bean
+    AddInternalNoteUseCase addInternalNoteUseCase(LoadRequestPort loadRequestPort,
+                                                  SaveRequestPort saveRequestPort) {
+        return new AddInternalNoteService(loadRequestPort, saveRequestPort);
     }
 
     @Bean

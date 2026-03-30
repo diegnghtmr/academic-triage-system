@@ -1,44 +1,24 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
-import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
-import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
-import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.*;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CancelRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.ClassifyRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RejectRequestRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestResponse;
+import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.model.id.RequestId;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.*;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -56,6 +36,8 @@ class RequestController {
     private final RejectRequestUseCase rejectRequestUseCase;
     private final ListRequestsQuery listRequestsQuery;
     private final GetRequestDetailQuery getRequestDetailQuery;
+    private final GetRequestHistoryQuery getRequestHistoryQuery;
+    private final AddInternalNoteUseCase addInternalNoteUseCase;
     private final RequestRestMapper requestRestMapper;
     private final AuthenticatedActorMapper authenticatedActorMapper;
 
@@ -69,6 +51,8 @@ class RequestController {
                              RejectRequestUseCase rejectRequestUseCase,
                              ListRequestsQuery listRequestsQuery,
                              GetRequestDetailQuery getRequestDetailQuery,
+                             GetRequestHistoryQuery getRequestHistoryQuery,
+                             AddInternalNoteUseCase addInternalNoteUseCase,
                              RequestRestMapper requestRestMapper,
                              AuthenticatedActorMapper authenticatedActorMapper) {
         this.createRequestUseCase = Objects.requireNonNull(createRequestUseCase);
@@ -81,6 +65,8 @@ class RequestController {
         this.rejectRequestUseCase = Objects.requireNonNull(rejectRequestUseCase);
         this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
         this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
+        this.getRequestHistoryQuery = Objects.requireNonNull(getRequestHistoryQuery);
+        this.addInternalNoteUseCase = Objects.requireNonNull(addInternalNoteUseCase);
         this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
         this.authenticatedActorMapper = Objects.requireNonNull(authenticatedActorMapper);
     }
@@ -205,5 +191,30 @@ class RequestController {
         var actor = authenticatedActorMapper.toRequiredActor(authentication);
         var detail = getRequestDetailQuery.execute(requestRestMapper.toDetailQuery(requestId), actor);
         return ResponseEntity.ok(requestRestMapper.toDetailResponse(detail));
+    }
+
+    @GetMapping("/{requestId}/history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'STUDENT')")
+    public ResponseEntity<List<HistoryEntryResponse>> getHistory(@PathVariable("requestId") Long requestId,
+                                                                 Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var detail = getRequestDetailQuery.execute(requestRestMapper.toDetailQuery(requestId), actor);
+
+        if (actor.role() == Role.STUDENT && !detail.requester().getUsername().value().equals(actor.username())) {
+            throw new AccessDeniedException("No tienes permiso para ver el historial de esta solicitud.");
+        }
+
+        var history = getRequestHistoryQuery.getRequestHistory(new RequestId(requestId));
+        return ResponseEntity.ok(history.stream().map(requestRestMapper::toResponse).toList());
+    }
+
+    @PostMapping("/{requestId}/history")
+    @PreAuthorize("hasRole('STAFF')")
+    public ResponseEntity<Void> addInternalNote(@PathVariable("requestId") Long requestId,
+                                                @Valid @RequestBody AddInternalNoteRequest request,
+                                                Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        addInternalNoteUseCase.addInternalNote(requestRestMapper.toCommand(requestId, request, actor.userId()));
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

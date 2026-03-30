@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
 
+import co.edu.uniquindio.triage.application.port.in.command.request.AddInternalNoteCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.AssignRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.AttendRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.CancelRequestCommand;
@@ -17,6 +18,7 @@ import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.model.OriginChannel;
+import co.edu.uniquindio.triage.domain.model.RequestHistory;
 import co.edu.uniquindio.triage.domain.model.RequestType;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
@@ -24,6 +26,7 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.OriginChannelResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.RequestTypeResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AddInternalNoteRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AssignRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AttendRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CancelRequestRequest;
@@ -112,6 +115,15 @@ public interface RequestRestMapper {
         return new RejectRequestCommand(
                 new RequestId(requestId),
                 request.rejectionReason()
+        );
+    }
+
+    default AddInternalNoteCommand toCommand(Long requestId, AddInternalNoteRequest request, UserId authorId) {
+        Objects.requireNonNull(request, "La solicitud HTTP no puede ser null");
+        return new AddInternalNoteCommand(
+                new RequestId(requestId),
+                request.observations(),
+                authorId
         );
     }
 
@@ -205,6 +217,16 @@ public interface RequestRestMapper {
                 page.totalPages(),
                 page.currentPage(),
                 page.pageSize()
+        );
+    }
+
+    default HistoryEntryResponse toResponse(RequestHistory entry) {
+        return new HistoryEntryResponse(
+                entry.getId() == null ? null : entry.getId().value(),
+                entry.getAction(),
+                entry.getObservations(),
+                entry.getTimestamp(),
+                null // User details not available in raw history
         );
     }
 
