@@ -12,13 +12,13 @@ import lombok.*;
 @Builder
 @EqualsAndHashCode(of = "id")
 @ToString
-public class BusinessRuleJpaEntity {
+class BusinessRuleJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, length = 100, nullable = false)
+    @Column(unique = true, length = 150, nullable = false)
     private String name;
 
     @Column(length = 500)
@@ -27,7 +27,7 @@ public class BusinessRuleJpaEntity {
     @Column(name = "condition_type", length = 50, nullable = false)
     private String conditionType;
 
-    @Column(name = "condition_value", length = 255, nullable = false)
+    @Column(name = "condition_value", nullable = false)
     private String conditionValue;
 
     @Column(name = "resulting_priority", length = 20, nullable = false)
@@ -40,20 +40,4 @@ public class BusinessRuleJpaEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_type_id")
     private RequestTypeJpaEntity requestType;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public RequestTypeJpaEntity getRequestType() {
-        return requestType;
-    }
-
-    public void setRequestType(RequestTypeJpaEntity requestType) {
-        this.requestType = requestType;
-    }
 }

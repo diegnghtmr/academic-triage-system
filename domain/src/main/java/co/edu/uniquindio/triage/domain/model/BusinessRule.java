@@ -13,16 +13,16 @@ public class BusinessRule {
     private final BusinessRuleId id;
     private String name;
     private String description;
-    private final ConditionType conditionType;
-    private final String conditionValue;
-    private final Priority resultingPriority;
+    private ConditionType conditionType;
+    private String conditionValue;
+    private Priority resultingPriority;
     private boolean active;
-    private final RequestTypeId requestTypeId;
+    private RequestTypeId requestTypeId;
 
     public BusinessRule(BusinessRuleId id, String name, String description,
                         ConditionType conditionType, String conditionValue,
                         Priority resultingPriority, boolean active, RequestTypeId requestTypeId) {
-        this.id = Objects.requireNonNull(id, "El id no puede ser null");
+        this.id = id; // Can be null for new rules
         this.name = validateName(name);
         this.description = validateDescription(description);
         this.conditionType = Objects.requireNonNull(conditionType, "El conditionType no puede ser null");
@@ -32,13 +32,43 @@ public class BusinessRule {
         this.requestTypeId = requestTypeId;
     }
 
+    /**
+     * Creates a new BusinessRule with the given details and default active=true.
+     */
+    public static BusinessRule createNew(String name, String description,
+                                         ConditionType conditionType, String conditionValue,
+                                         Priority resultingPriority, RequestTypeId requestTypeId) {
+        return new BusinessRule(null, name, description, conditionType, conditionValue,
+                resultingPriority, true, requestTypeId);
+    }
+
+    public static BusinessRule reconstitute(BusinessRuleId id, String name, String description,
+                                            ConditionType conditionType, String conditionValue,
+                                            Priority resultingPriority, RequestTypeId requestTypeId,
+                                            boolean active) {
+        return new BusinessRule(Objects.requireNonNull(id, "El id no puede ser null"),
+                name, description, conditionType, conditionValue, resultingPriority, active, requestTypeId);
+    }
+
+    public void update(String name, String description, ConditionType conditionType,
+                       String conditionValue, Priority resultingPriority, RequestTypeId requestTypeId,
+                       boolean active) {
+        this.name = validateName(name);
+        this.description = validateDescription(description);
+        this.conditionType = Objects.requireNonNull(conditionType, "El conditionType no puede ser null");
+        this.conditionValue = validateConditionValue(conditionValue);
+        this.resultingPriority = Objects.requireNonNull(resultingPriority, "El resultingPriority no puede ser null");
+        this.requestTypeId = requestTypeId;
+        this.active = active;
+    }
+
     private String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("El nombre no puede ser null o vacío");
         }
         String trimmed = name.trim();
-        if (trimmed.length() > 100) {
-            throw new IllegalArgumentException("El nombre no puede tener más de 100 caracteres");
+        if (trimmed.length() > 150) {
+            throw new IllegalArgumentException("El nombre no puede tener más de 150 caracteres");
         }
         return trimmed;
     }
@@ -54,9 +84,7 @@ public class BusinessRule {
         if (conditionValue == null || conditionValue.isBlank()) {
             throw new IllegalArgumentException("El conditionValue no puede ser null o vacío");
         }
-        if (conditionValue.length() > 255) {
-            throw new IllegalArgumentException("El conditionValue no puede tener más de 255 caracteres");
-        }
+        // Relaxation of length for opaque JSON/text
         return conditionValue.trim();
     }
 
@@ -136,12 +164,18 @@ public class BusinessRule {
         if (request.getDeadline() == null) {
             return false;
         }
-        long daysUntilDeadline = ChronoUnit.DAYS.between(LocalDate.now(), request.getDeadline());
-        long thresholdDays = Long.parseLong(this.conditionValue);
-        return daysUntilDeadline >= 0 && daysUntilDeadline <= thresholdDays;
+        try {
+            var daysUntilDeadline = ChronoUnit.DAYS.between(LocalDate.now(), request.getDeadline());
+            var thresholdDays = Long.parseLong(this.conditionValue);
+            return daysUntilDeadline >= 0 && daysUntilDeadline <= thresholdDays;
+        } catch (NumberFormatException e) {
+            // If conditionValue is now complex JSON, legacy execution fails gracefully
+            return false;
+        }
     }
 
     private boolean matchesImpactLevel(AcademicRequest request) {
+        if (this.conditionValue == null) return false;
         return this.conditionValue.equalsIgnoreCase(
                 request.getPriority() != null ? request.getPriority().name() : ""
         );
