@@ -1,8 +1,8 @@
-package co.edu.uniquindio.triage.application.port.in.request;
+package co.edu.uniquindio.triage.application.port.in.common;
 
 import java.util.List;
 
-public record RequestPage<T>(
+public record Page<T>(
         List<T> content,
         long totalElements,
         int totalPages,
@@ -10,7 +10,7 @@ public record RequestPage<T>(
         int pageSize
 ) {
 
-    public RequestPage {
+    public Page {
         content = content == null ? List.of() : List.copyOf(content);
         if (totalElements < 0) {
             throw new IllegalArgumentException("El total de elementos no puede ser negativo");

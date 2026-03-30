@@ -2,8 +2,8 @@ package co.edu.uniquindio.triage.application.service.request;
 
 import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
+import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
-import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
 import co.edu.uniquindio.triage.application.port.out.persistence.SearchRequestPort;
@@ -20,7 +20,7 @@ public class ListRequestsService implements ListRequestsQuery {
     }
 
     @Override
-    public RequestPage<RequestSummary> execute(ListRequestsQueryModel query, AuthenticatedActor actor) {
+    public Page<RequestSummary> execute(ListRequestsQueryModel query, AuthenticatedActor actor) {
         Objects.requireNonNull(query, "El query no puede ser null");
         Objects.requireNonNull(actor, "El actor no puede ser null");
 
