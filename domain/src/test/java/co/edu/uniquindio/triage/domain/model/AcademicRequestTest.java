@@ -85,12 +85,13 @@ class AcademicRequestTest {
         request.assign(assignee, actorId, "  Caso derivado al analista  ", assignedAt);
 
         assertThat(request.getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
-        assertThat(request.getResponsibleId()).isEqualTo(assignee.getId());
+        var assigneeId = assignee.getId().orElseThrow();
+        assertThat(request.getResponsibleId()).isEqualTo(assigneeId);
 
         var historyEntry = request.getHistory().getLast();
         assertThat(historyEntry.getAction()).isEqualTo(HistoryAction.ASSIGNED);
         assertThat(historyEntry.getPerformedById()).isEqualTo(actorId);
-        assertThat(historyEntry.getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(historyEntry.getResponsibleId()).isEqualTo(assigneeId);
         assertThat(historyEntry.getObservations()).isEqualTo("Caso derivado al analista");
         assertThat(historyEntry.getId()).isNull();
     }

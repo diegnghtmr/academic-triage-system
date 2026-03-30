@@ -70,7 +70,7 @@ public class AcademicRequest {
     }
 
     /**
-     * Factory method for ORM/mapper reconstitution. Package-private access.
+     * Factory method for ORM/mapper reconstitution.
      */
     @SuppressWarnings("java:S107")
     public static AcademicRequest reconstitute(RequestId id, String description, RequestStatus status,
@@ -104,10 +104,6 @@ public class AcademicRequest {
 
     // --- Business methods ---
 
-    public void classify(RequestTypeId newRequestTypeId, RequestHistoryId historyId,
-                         UserId performedById, LocalDateTime timestamp) {
-        classify(newRequestTypeId, (String) null, performedById, timestamp);
-    }
 
     public void classify(RequestTypeId newRequestTypeId, String observations,
                          UserId performedById, LocalDateTime timestamp) {
@@ -117,26 +113,14 @@ public class AcademicRequest {
         addHistory(HistoryAction.CLASSIFIED, observations, timestamp, performedById);
     }
 
-    public void prioritize(Priority newPriority, String justification,
-                             RequestHistoryId historyId, UserId performedById, LocalDateTime timestamp) {
-        prioritize(newPriority, justification, performedById, timestamp);
-    }
 
-    public void prioritize(Priority newPriority, String justification,
-                           UserId performedById, LocalDateTime timestamp) {
-        if (this.status != RequestStatus.CLASSIFIED) {
-            throw new IllegalStateException(
-                    String.format("Solo se puede priorizar en estado CLASSIFIED, estado actual: %s", this.status));
-        }
+    public void prioritize(Priority newPriority, String justification, UserId performedById, LocalDateTime timestamp) {
         Objects.requireNonNull(newPriority, "La prioridad no puede ser null");
         this.priorityJustification = validateJustification(justification);
         this.priority = newPriority;
         addHistory(HistoryAction.PRIORITIZED, this.priorityJustification, timestamp, performedById);
     }
 
-    public void assign(User staff, RequestHistoryId historyId, LocalDateTime timestamp) {
-        assign(staff, staff == null ? null : staff.getId(), null, timestamp);
-    }
 
     public void assign(User staff, UserId performedById, String observations, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.IN_PROGRESS);
@@ -148,15 +132,11 @@ public class AcademicRequest {
         if (staff.getRole() != Role.STAFF) {
             throw new IllegalArgumentException("El usuario responsable debe tener rol STAFF");
         }
-        this.responsibleId = staff.getId();
+        this.responsibleId = staff.getId().orElseThrow(() -> new IllegalArgumentException("El usuario responsable debe estar persistido"));
         this.status = RequestStatus.IN_PROGRESS;
         addHistory(HistoryAction.ASSIGNED, observations, timestamp, performedById, this.responsibleId);
     }
 
-    public void attend(String observation, RequestHistoryId historyId,
-                       UserId performedById, LocalDateTime timestamp) {
-        attend(observation, performedById, timestamp);
-    }
 
     public void attend(String observation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.ATTENDED);
@@ -166,10 +146,6 @@ public class AcademicRequest {
         addHistory(HistoryAction.ATTENDED, validatedObservation, timestamp, performedById);
     }
 
-    public void close(String closingObservation, RequestHistoryId historyId,
-                      UserId performedById, LocalDateTime timestamp) {
-        close(closingObservation, performedById, timestamp);
-    }
 
     public void close(String closingObservation, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CLOSED);
@@ -179,10 +155,6 @@ public class AcademicRequest {
         addHistory(HistoryAction.CLOSED, validatedClosingObservation, timestamp, performedById);
     }
 
-    public void cancel(String reason, RequestHistoryId historyId,
-                       UserId performedById, LocalDateTime timestamp) {
-        cancel(reason, performedById, timestamp);
-    }
 
     public void cancel(String reason, UserId performedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.CANCELLED);
@@ -192,10 +164,6 @@ public class AcademicRequest {
         addHistory(HistoryAction.CANCELLED, validatedReason, timestamp, performedById);
     }
 
-    public void reject(String reason, UserId rejectedById, RequestHistoryId historyId,
-                       LocalDateTime timestamp) {
-        reject(reason, rejectedById, timestamp);
-    }
 
     public void reject(String reason, UserId rejectedById, LocalDateTime timestamp) {
         StateTransitionValidator.validateTransition(this.status, RequestStatus.REJECTED);
@@ -351,7 +319,7 @@ public class AcademicRequest {
         if (description == null || description.isBlank()) {
             throw new IllegalArgumentException("La descripción no puede ser null o vacía");
         }
-        String trimmed = description.trim();
+        var trimmed = description.trim();
         if (trimmed.length() < 10 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La descripción debe tener entre 10 y 2000 caracteres");
         }
@@ -362,7 +330,7 @@ public class AcademicRequest {
         if (justification == null || justification.isBlank()) {
             throw new IllegalArgumentException("La justificación no puede ser null o vacía");
         }
-        String trimmed = justification.trim();
+        var trimmed = justification.trim();
         if (trimmed.length() < 5 || trimmed.length() > 1000) {
             throw new IllegalArgumentException("La justificación debe tener entre 5 y 1000 caracteres");
         }
@@ -373,7 +341,7 @@ public class AcademicRequest {
         if (observation == null || observation.isBlank()) {
             throw new IllegalArgumentException("La observación de cierre no puede ser null o vacía");
         }
-        String trimmed = observation.trim();
+        var trimmed = observation.trim();
         if (trimmed.length() < 5 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La observación de cierre debe tener entre 5 y 2000 caracteres");
         }
@@ -384,7 +352,7 @@ public class AcademicRequest {
         if (observation == null || observation.isBlank()) {
             throw new IllegalArgumentException("La observación no puede ser null o vacía");
         }
-        String trimmed = observation.trim();
+        var trimmed = observation.trim();
         if (trimmed.length() < 5 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La observación debe tener entre 5 y 2000 caracteres");
         }
@@ -395,7 +363,7 @@ public class AcademicRequest {
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("La razón no puede ser null o vacía");
         }
-        String trimmed = reason.trim();
+        var trimmed = reason.trim();
         if (trimmed.length() < 5 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La razón debe tener entre 5 y 2000 caracteres");
         }
@@ -406,7 +374,7 @@ public class AcademicRequest {
         if (note == null || note.isBlank()) {
             throw new IllegalArgumentException("La nota interna no puede ser null o vacía");
         }
-        String trimmed = note.trim();
+        var trimmed = note.trim();
         if (trimmed.length() < 1 || trimmed.length() > 2000) {
             throw new IllegalArgumentException("La nota interna debe tener entre 1 y 2000 caracteres");
         }

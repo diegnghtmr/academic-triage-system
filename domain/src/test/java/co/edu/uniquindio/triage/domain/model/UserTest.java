@@ -41,4 +41,56 @@ class UserTest {
         assertThatThrownBy(user::ensureActive)
                 .isInstanceOf(UserNotActiveException.class);
     }
+
+    @Test
+    void shouldUpdateProfileWhenValidDataProvided() {
+        var user = createUser();
+        var newFirstName = "Nuevo Nombre";
+        var newLastName = "Nuevo Apellido";
+        var newIdentification = new Identification("1234567890");
+
+        user.updateProfile(newFirstName, newLastName, newIdentification);
+
+        assertThat(user.getFirstName()).isEqualTo(newFirstName);
+        assertThat(user.getLastName()).isEqualTo(newLastName);
+        assertThat(user.getIdentification()).isEqualTo(newIdentification);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingProfileWithInvalidNames() {
+        var user = createUser();
+        var newIdentification = new Identification("1234567890");
+
+        assertThatThrownBy(() -> user.updateProfile("", "Apellido", newIdentification))
+                .isInstanceOf(IllegalArgumentException.class);
+        
+        assertThatThrownBy(() -> user.updateProfile("Nombre", null, newIdentification))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldDeactivateAndActivateUser() {
+        var user = createUser();
+        assertThat(user.isActive()).isTrue();
+
+        user.deactivate();
+        assertThat(user.isActive()).isFalse();
+
+        user.activate();
+        assertThat(user.isActive()).isTrue();
+    }
+
+    private User createUser() {
+        return User.reconstitute(
+                new UserId(1L),
+                new Username("user1"),
+                "Nombre",
+                "Apellido",
+                new PasswordHash("hash"),
+                new Identification("111111"),
+                new Email("user1@test.com"),
+                Role.STUDENT,
+                true
+        );
+    }
 }

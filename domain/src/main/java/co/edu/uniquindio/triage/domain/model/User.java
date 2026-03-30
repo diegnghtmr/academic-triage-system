@@ -5,14 +5,15 @@ import co.edu.uniquindio.triage.domain.exception.UserNotActiveException;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class User {
     private final UserId id;
     private final Username username;
-    private final String firstName;
-    private final String lastName;
+    private String firstName;
+    private String lastName;
     private final PasswordHash passwordHash;
-    private final Identification identification;
+    private Identification identification;
     private Email email;
     private Role role;
     private boolean active;
@@ -62,8 +63,8 @@ public class User {
         return trimmed;
     }
 
-    public UserId getId() {
-        return id;
+    public Optional<UserId> getId() {
+        return Optional.ofNullable(id);
     }
 
     public Username getUsername() {
@@ -116,6 +117,12 @@ public class User {
         this.active = true;
     }
 
+    public void updateProfile(String firstName, String lastName, Identification identification) {
+        this.firstName = validateName(firstName, "nombre");
+        this.lastName = validateName(lastName, "apellido");
+        this.identification = Objects.requireNonNull(identification, "La identificación no puede ser null");
+    }
+
     public void updateRole(Role newRole) {
         this.role = Objects.requireNonNull(newRole, "El rol no puede ser null");
     }
@@ -137,7 +144,7 @@ public class User {
     }
 
     public boolean canCancelRequest(UserId applicantId) {
-        return (this.isStudent() && this.id.equals(applicantId)) || this.isStaff() || this.isAdmin();
+        return (this.isStudent() && this.id != null && this.id.equals(applicantId)) || this.isStaff() || this.isAdmin();
     }
 
     public boolean canClassifyRequest() {
