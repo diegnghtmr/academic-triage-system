@@ -109,7 +109,7 @@ class RequestPersistenceAdapterTest {
         var request = new AcademicRequest(
                 nextId,
                 "Necesito un cupo adicional para la materia de arquitectura",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 LocalDate.of(2026, 4, 10),
@@ -125,7 +125,7 @@ class RequestPersistenceAdapterTest {
 
         assertThat(loaded).isPresent();
         assertThat(loaded.orElseThrow().getId()).isEqualTo(nextId);
-        assertThat(loaded.orElseThrow().getApplicantId()).isEqualTo(requester.getId());
+        assertThat(loaded.orElseThrow().getApplicantId()).isEqualTo(requester.getId().orElseThrow());
         assertThat(loaded.orElseThrow().getOriginChannelId()).isEqualTo(originChannel.getId());
         assertThat(loaded.orElseThrow().getRequestTypeId()).isEqualTo(requestType.getId());
         assertThat(loaded.orElseThrow().getHistory()).hasSize(1);
@@ -154,8 +154,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                requester.getId(),
-                staff.getId(),
+                requester.getId().orElseThrow(),
+                staff.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),
@@ -166,7 +166,7 @@ class RequestPersistenceAdapterTest {
                                 "Asignada a staff",
                                 LocalDateTime.of(2026, 3, 20, 9, 0),
                                 reservedId,
-                                staff.getId()
+                                staff.getId().orElseThrow()
                         ),
                         new co.edu.uniquindio.triage.domain.model.RequestHistory(
                                 null,
@@ -174,7 +174,7 @@ class RequestPersistenceAdapterTest {
                                 "Registro inicial",
                                 LocalDateTime.of(2026, 3, 20, 8, 0),
                                 reservedId,
-                                requester.getId()
+                                requester.getId().orElseThrow()
                         )
                 )
         );
@@ -186,9 +186,9 @@ class RequestPersistenceAdapterTest {
         var detail = requestPersistenceAdapter.loadDetailById(reservedId);
 
         assertThat(detail).isPresent();
-        assertThat(detail.orElseThrow().requester().getId()).isEqualTo(requester.getId());
+        assertThat(detail.orElseThrow().requester().getId().orElseThrow()).isEqualTo(requester.getId().orElseThrow());
         assertThat(detail.orElseThrow().assignedTo()).isPresent();
-        assertThat(detail.orElseThrow().assignedTo().orElseThrow().getId()).isEqualTo(staff.getId());
+        assertThat(detail.orElseThrow().assignedTo().orElseThrow().getId().orElseThrow()).isEqualTo(staff.getId().orElseThrow());
         assertThat(detail.orElseThrow().history()).hasSize(2);
         assertThat(detail.orElseThrow().history().get(0).historyEntry().getAction()).isEqualTo(HistoryAction.REGISTERED);
         assertThat(detail.orElseThrow().history().get(1).historyEntry().getAction()).isEqualTo(HistoryAction.ASSIGNED);
@@ -216,8 +216,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                studentA.getId(),
-                staff.getId(),
+                studentA.getId().orElseThrow(),
+                staff.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),
@@ -237,8 +237,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                studentA.getId(),
-                staff.getId(),
+                studentA.getId().orElseThrow(),
+                staff.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),
@@ -258,8 +258,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                studentB.getId(),
-                staff.getId(),
+                studentB.getId().orElseThrow(),
+                staff.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),
@@ -272,8 +272,8 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.IN_PROGRESS),
                 Optional.empty(),
                 Optional.of(Priority.MEDIUM),
-                Optional.of(staff.getId()),
-                Optional.of(studentA.getId()),
+                Optional.of(staff.getId().orElseThrow()),
+                Optional.of(studentA.getId().orElseThrow()),
                 Optional.of(LocalDate.of(2026, 3, 1)),
                 Optional.of(LocalDate.of(2026, 3, 31)),
                 0,
@@ -285,9 +285,9 @@ class RequestPersistenceAdapterTest {
         assertThat(page.content()).extracting(summary -> summary.request().getId().value())
                 .containsExactly(secondId.value(), firstId.value());
         assertThat(page.content()).extracting(RequestSummary::requester)
-                .allMatch(user -> user.getId().equals(studentA.getId()));
-        assertThat(page.content()).extracting(summary -> summary.assignedTo().orElseThrow().getId())
-                .allMatch(id -> id.equals(staff.getId()));
+                .allMatch(user -> user.getId().orElseThrow().equals(studentA.getId().orElseThrow()));
+        assertThat(page.content()).extracting(summary -> summary.assignedTo().orElseThrow().getId().orElseThrow())
+                .allMatch(id -> id.equals(staff.getId().orElseThrow()));
     }
 
     @Test
@@ -303,7 +303,7 @@ class RequestPersistenceAdapterTest {
         requestPersistenceAdapter.save(new AcademicRequest(
                 requestId,
                 "Solicitud para validar persistencia de triage",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 originChannel.getId(),
                 initialType.getId(),
                 LocalDate.of(2026, 4, 20),
@@ -317,18 +317,18 @@ class RequestPersistenceAdapterTest {
         request.classify(
                 classifiedType.getId(),
                 "Clasificación manual",
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 LocalDateTime.of(2026, 3, 24, 9, 0)
         );
         request.prioritize(
                 Priority.HIGH,
                 "Urgencia académica validada",
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 LocalDateTime.of(2026, 3, 24, 9, 15)
         );
         request.assign(
                 assignee,
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 "Asignada al staff responsable",
                 LocalDateTime.of(2026, 3, 24, 9, 30)
         );
@@ -347,7 +347,7 @@ class RequestPersistenceAdapterTest {
         assertThat(loaded.getRequestTypeId()).isEqualTo(classifiedType.getId());
         assertThat(loaded.getPriority()).isEqualTo(Priority.HIGH);
         assertThat(loaded.getPriorityJustification()).isEqualTo("Urgencia académica validada");
-        assertThat(loaded.getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(loaded.getResponsibleId()).isEqualTo(assignee.getId().orElseThrow());
         assertThat(loaded.getHistory()).hasSize(4);
         assertThat(loaded.getHistory()).allMatch(history -> history.getId() != null);
         assertThat(loaded.getHistory()).extracting(history -> history.getAction())
@@ -359,14 +359,14 @@ class RequestPersistenceAdapterTest {
                 );
 
         var assignedHistory = loaded.getHistory().get(3);
-        assertThat(assignedHistory.getPerformedById()).isEqualTo(triageActor.getId());
-        assertThat(assignedHistory.getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(assignedHistory.getPerformedById()).isEqualTo(triageActor.getId().orElseThrow());
+        assertThat(assignedHistory.getResponsibleId()).isEqualTo(assignee.getId().orElseThrow());
 
         assertThat(detail.assignedTo()).isPresent();
-        assertThat(detail.assignedTo().orElseThrow().getId()).isEqualTo(assignee.getId());
+        assertThat(detail.assignedTo().orElseThrow().getId().orElseThrow()).isEqualTo(assignee.getId().orElseThrow());
         assertThat(detail.history()).hasSize(4);
-        assertThat(detail.history().get(3).performedBy().getId()).isEqualTo(triageActor.getId());
-        assertThat(detail.history().get(3).historyEntry().getResponsibleId()).isEqualTo(assignee.getId());
+        assertThat(detail.history().get(3).performedBy().getId().orElseThrow()).isEqualTo(triageActor.getId().orElseThrow());
+        assertThat(detail.history().get(3).historyEntry().getResponsibleId()).isEqualTo(assignee.getId().orElseThrow());
     }
 
     @Test
@@ -382,7 +382,7 @@ class RequestPersistenceAdapterTest {
         requestPersistenceAdapter.save(new AcademicRequest(
                 requestId,
                 "Solicitud para validar persistencia de atención",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 originChannel.getId(),
                 initialType.getId(),
                 LocalDate.of(2026, 4, 22),
@@ -396,18 +396,18 @@ class RequestPersistenceAdapterTest {
         request.classify(
                 classifiedType.getId(),
                 "Clasificación para atención",
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 LocalDateTime.of(2026, 3, 24, 9, 0)
         );
         request.prioritize(
                 Priority.HIGH,
                 "Urgencia confirmada para atención",
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 LocalDateTime.of(2026, 3, 24, 9, 15)
         );
         request.assign(
                 assignee,
-                triageActor.getId(),
+                triageActor.getId().orElseThrow(),
                 "Asignada para atención",
                 LocalDateTime.of(2026, 3, 24, 9, 30)
         );
@@ -417,7 +417,7 @@ class RequestPersistenceAdapterTest {
 
         var inProgressRequest = requestPersistenceAdapter.loadById(requestId).orElseThrow();
         var attendanceObservation = "Atención manual completada con validación documental";
-        inProgressRequest.attend(attendanceObservation, assignee.getId(), LocalDateTime.of(2026, 3, 24, 10, 0));
+        inProgressRequest.attend(attendanceObservation, assignee.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 10, 0));
 
         requestPersistenceAdapter.save(inProgressRequest);
         entityManager.flush();
@@ -439,13 +439,13 @@ class RequestPersistenceAdapterTest {
                         HistoryAction.ATTENDED
                 );
         assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(attendanceObservation);
-        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(assignee.getId());
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(assignee.getId().orElseThrow());
 
         assertThat(detail.request().getAttendanceObservation()).isEqualTo(attendanceObservation);
         assertThat(detail.history()).hasSize(5);
         assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.ATTENDED);
         assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(attendanceObservation);
-        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(assignee.getId());
+        assertThat(detail.history().getLast().performedBy().getId().orElseThrow()).isEqualTo(assignee.getId().orElseThrow());
     }
 
     @Test
@@ -469,8 +469,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 "Atendida previamente",
-                requester.getId(),
-                staff.getId(),
+                requester.getId().orElseThrow(),
+                staff.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),
@@ -478,7 +478,7 @@ class RequestPersistenceAdapterTest {
         );
         var closingObservation = "c".repeat(2000);
 
-        request.close(closingObservation, staff.getId(), LocalDateTime.of(2026, 3, 24, 12, 0));
+        request.close(closingObservation, staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 12, 0));
 
         requestPersistenceAdapter.save(request);
         entityManager.flush();
@@ -522,7 +522,7 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 null,
                 originChannel.getId(),
                 requestType.getId(),
@@ -531,7 +531,7 @@ class RequestPersistenceAdapterTest {
         );
         var cancellationReason = "x".repeat(2000);
 
-        request.cancel(cancellationReason, staff.getId(), LocalDateTime.of(2026, 3, 24, 12, 30));
+        request.cancel(cancellationReason, staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 12, 30));
 
         requestPersistenceAdapter.save(request);
         entityManager.flush();
@@ -545,14 +545,14 @@ class RequestPersistenceAdapterTest {
         assertThat(loaded.getCancellationReason()).isEqualTo(cancellationReason);
         assertThat(loaded.getHistory().getLast().getAction()).isEqualTo(HistoryAction.CANCELLED);
         assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(cancellationReason);
-        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(staff.getId());
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(staff.getId().orElseThrow());
 
         assertThat(detail.request().getStatus()).isEqualTo(RequestStatus.CANCELLED);
         assertThat(detail.request().getCancellationReason()).hasSize(2000);
         assertThat(detail.request().getCancellationReason()).isEqualTo(cancellationReason);
         assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.CANCELLED);
         assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(cancellationReason);
-        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(staff.getId());
+        assertThat(detail.history().getLast().performedBy().getId().orElseThrow()).isEqualTo(staff.getId().orElseThrow());
     }
 
     @Test
@@ -566,7 +566,7 @@ class RequestPersistenceAdapterTest {
         var request = new AcademicRequest(
                 requestId,
                 "Solicitud para validar rechazo persistido",
-                requester.getId(),
+                requester.getId().orElseThrow(),
                 originChannel.getId(),
                 requestType.getId(),
                 LocalDate.of(2026, 4, 27),
@@ -575,7 +575,7 @@ class RequestPersistenceAdapterTest {
         );
         var rejectionReason = "r".repeat(2000);
 
-        request.reject(rejectionReason, admin.getId(), LocalDateTime.of(2026, 3, 24, 13, 0));
+        request.reject(rejectionReason, admin.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 13, 0));
 
         requestPersistenceAdapter.save(request);
         entityManager.flush();
@@ -589,14 +589,14 @@ class RequestPersistenceAdapterTest {
         assertThat(loaded.getRejectionReason()).isEqualTo(rejectionReason);
         assertThat(loaded.getHistory().getLast().getAction()).isEqualTo(HistoryAction.REJECTED);
         assertThat(loaded.getHistory().getLast().getObservations()).isEqualTo(rejectionReason);
-        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(admin.getId());
+        assertThat(loaded.getHistory().getLast().getPerformedById()).isEqualTo(admin.getId().orElseThrow());
 
         assertThat(detail.request().getStatus()).isEqualTo(RequestStatus.REJECTED);
         assertThat(detail.request().getRejectionReason()).hasSize(2000);
         assertThat(detail.request().getRejectionReason()).isEqualTo(rejectionReason);
         assertThat(detail.history().getLast().historyEntry().getAction()).isEqualTo(HistoryAction.REJECTED);
         assertThat(detail.history().getLast().historyEntry().getObservations()).isEqualTo(rejectionReason);
-        assertThat(detail.history().getLast().performedBy().getId()).isEqualTo(admin.getId());
+        assertThat(detail.history().getLast().performedBy().getId().orElseThrow()).isEqualTo(admin.getId().orElseThrow());
     }
 
     @Test
@@ -664,8 +664,8 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.REGISTERED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
-                Optional.of(staff.getId()),
-                Optional.of(requester.getId()),
+                Optional.of(staff.getId().orElseThrow()),
+                Optional.of(requester.getId().orElseThrow()),
                 Optional.of(LocalDate.of(2026, 3, 10)),
                 Optional.of(LocalDate.of(2026, 3, 12)),
                 0,
@@ -676,8 +676,8 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.REGISTERED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
-                Optional.of(staff.getId()),
-                Optional.of(requester.getId()),
+                Optional.of(staff.getId().orElseThrow()),
+                Optional.of(requester.getId().orElseThrow()),
                 Optional.of(LocalDate.of(2026, 3, 10)),
                 Optional.of(LocalDate.of(2026, 3, 12)),
                 1,
@@ -737,8 +737,8 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.CLASSIFIED),
                 Optional.of(requestType.getId()),
                 Optional.of(Priority.HIGH),
-                Optional.of(staff.getId()),
-                Optional.of(requester.getId()),
+                Optional.of(staff.getId().orElseThrow()),
+                Optional.of(requester.getId().orElseThrow()),
                 Optional.empty(),
                 Optional.empty(),
                 0,
@@ -829,8 +829,8 @@ class RequestPersistenceAdapterTest {
                 null,
                 null,
                 null,
-                requester.getId(),
-                assignedTo == null ? null : assignedTo.getId(),
+                requester.getId().orElseThrow(),
+                assignedTo == null ? null : assignedTo.getId().orElse(null),
                 originChannel.getId(),
                 requestType.getId(),
                 java.util.List.of(),

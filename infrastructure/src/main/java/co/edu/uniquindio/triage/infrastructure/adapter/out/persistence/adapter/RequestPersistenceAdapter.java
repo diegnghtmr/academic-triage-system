@@ -1,7 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 
+import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
-import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
@@ -97,7 +97,7 @@ class RequestPersistenceAdapter implements SaveRequestPort, LoadRequestPort, Sea
     }
 
     @Override
-    public RequestPage<RequestSummary> search(RequestSearchCriteria criteria) {
+    public Page<RequestSummary> search(RequestSearchCriteria criteria) {
         Objects.requireNonNull(criteria, "Los criterios de búsqueda no pueden ser null");
 
         var page = requestJpaRepository.findAll(
@@ -109,7 +109,7 @@ class RequestPersistenceAdapter implements SaveRequestPort, LoadRequestPort, Sea
                 .map(requestPersistenceMapper::toSummary)
                 .toList();
 
-        return new RequestPage<>(
+        return new Page<>(
                 content,
                 page.getTotalElements(),
                 page.getTotalPages(),

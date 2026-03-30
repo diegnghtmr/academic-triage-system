@@ -10,12 +10,12 @@ import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQuery;
+import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
-import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.Priority;
@@ -859,7 +859,7 @@ class RequestControllerTest {
 
     @Test
     void listMustBindFiltersAndReturnPagedContract() throws Exception {
-        given(listRequestsQuery.execute(any(), any())).willReturn(new RequestPage<>(List.of(sampleSummary()), 1, 1, 0, 20));
+        given(listRequestsQuery.execute(any(), any())).willReturn(new Page<>(List.of(sampleSummary()), 1, 1, 0, 20));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/requests")
                         .with(staffAuthentication())
@@ -1101,8 +1101,8 @@ class RequestControllerTest {
                 closingObservation,
                 cancellationReason,
                 null,
-                requester.getId(),
-                assignedTo.map(User::getId).orElse(null),
+                requester.getId().orElseThrow(),
+                assignedTo.flatMap(User::getId).orElse(null),
                 new OriginChannelId(2L),
                 requestTypeId,
                 List.of(),
@@ -1125,7 +1125,7 @@ class RequestControllerTest {
                 "Request registered",
                 summary.request().getRegistrationDateTime(),
                 summary.request().getId(),
-                summary.requester().getId()
+                summary.requester().getId().orElseThrow()
         );
 
         return new RequestDetail(
@@ -1148,7 +1148,7 @@ class RequestControllerTest {
                 "Request registered",
                 LocalDateTime.of(2026, 3, 10, 8, 30),
                 summary.request().getId(),
-                summary.requester().getId()
+                summary.requester().getId().orElseThrow()
         );
         var attendedEntry = new RequestHistory(
                 new RequestHistoryId(101L),
@@ -1156,8 +1156,8 @@ class RequestControllerTest {
                 "Se gestionó el cupo con la coordinación y se notificó al estudiante.",
                 LocalDateTime.of(2026, 3, 12, 11, 15),
                 summary.request().getId(),
-                assignee.getId(),
-                assignee.getId()
+                assignee.getId().orElseThrow(),
+                assignee.getId().orElseThrow()
         );
 
         return new RequestDetail(

@@ -11,9 +11,9 @@ import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDe
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.PrioritizeRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.RejectRequestCommand;
+import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
-import co.edu.uniquindio.triage.application.port.in.request.RequestPage;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
@@ -209,7 +209,7 @@ public interface RequestRestMapper {
         );
     }
 
-    default PagedRequestResponse toPagedResponse(RequestPage<RequestSummary> page) {
+    default PagedRequestResponse toPagedResponse(Page<RequestSummary> page) {
         Objects.requireNonNull(page, "La página de solicitudes no puede ser null");
         return new PagedRequestResponse(
                 page.content().stream().map(this::toResponse).toList(),
