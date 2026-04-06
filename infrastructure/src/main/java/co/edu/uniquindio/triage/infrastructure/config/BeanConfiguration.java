@@ -25,6 +25,7 @@ import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQue
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.report.GetDashboardMetricsQuery;
 import co.edu.uniquindio.triage.application.port.in.businessrule.*;
 import co.edu.uniquindio.triage.application.port.out.persistence.*;
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
@@ -40,6 +41,8 @@ import co.edu.uniquindio.triage.application.service.catalog.ListOriginChannelsSe
 import co.edu.uniquindio.triage.application.service.catalog.ListRequestTypesService;
 import co.edu.uniquindio.triage.application.service.catalog.UpdateOriginChannelService;
 import co.edu.uniquindio.triage.application.service.catalog.UpdateRequestTypeService;
+import co.edu.uniquindio.triage.application.service.report.DashboardMetricsService;
+import co.edu.uniquindio.triage.application.service.report.ReportAuthorizationSupport;
 import co.edu.uniquindio.triage.application.service.request.*;
 import co.edu.uniquindio.triage.application.service.user.GetUserByIdService;
 import co.edu.uniquindio.triage.application.service.user.GetUsersService;
@@ -293,5 +296,16 @@ class BeanConfiguration {
                 loadUserAuthPort,
                 saveRequestPort
         );
+    }
+
+    @Bean
+    ReportAuthorizationSupport reportAuthorizationSupport() {
+        return new ReportAuthorizationSupport();
+    }
+
+    @Bean
+    GetDashboardMetricsQuery getDashboardMetricsQuery(LoadDashboardMetricsPort loadDashboardMetricsPort,
+                                                      ReportAuthorizationSupport reportAuthorizationSupport) {
+        return new DashboardMetricsService(loadDashboardMetricsPort, reportAuthorizationSupport);
     }
 }
