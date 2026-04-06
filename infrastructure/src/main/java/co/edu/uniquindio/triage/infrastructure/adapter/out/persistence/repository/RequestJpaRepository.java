@@ -39,4 +39,16 @@ public interface RequestJpaRepository extends JpaRepository<AcademicRequestJpaEn
               and table_name = 'academic_requests'
             """, nativeQuery = true)
     Optional<Long> findNextAutoIncrementValue();
+
+    @Query("SELECT COUNT(r) FROM AcademicRequestJpaEntity r WHERE (:from IS NULL OR r.registrationDateTime >= :from) AND (:to IS NULL OR r.registrationDateTime < :to)")
+    long countByRegistrationDateTime(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
+
+    @Query("SELECT r.status, COUNT(r) FROM AcademicRequestJpaEntity r WHERE (:from IS NULL OR r.registrationDateTime >= :from) AND (:to IS NULL OR r.registrationDateTime < :to) GROUP BY r.status")
+    java.util.List<Object[]> countByStatusAndRegistrationDateTime(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
+
+    @Query("SELECT rt.name, COUNT(r) FROM AcademicRequestJpaEntity r JOIN r.requestType rt WHERE (:from IS NULL OR r.registrationDateTime >= :from) AND (:to IS NULL OR r.registrationDateTime < :to) GROUP BY rt.name")
+    java.util.List<Object[]> countByTypeNameAndRegistrationDateTime(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
+
+    @Query("SELECT r.priority, COUNT(r) FROM AcademicRequestJpaEntity r WHERE (:from IS NULL OR r.registrationDateTime >= :from) AND (:to IS NULL OR r.registrationDateTime < :to) GROUP BY r.priority")
+    java.util.List<Object[]> countByPriorityAndRegistrationDateTime(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
 }
