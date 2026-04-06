@@ -52,15 +52,24 @@ spring:
 
 # JWT
 app:
+  ai:
+    provider: ${APP_AI_PROVIDER:none}
   jwt:
     secret: ${JWT_SECRET:default-dev-secret-change-me}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  docs:
+    # Outside dev/test docs stay disabled by default. Operators may opt in explicitly with
+    # APP_DOCS_ENABLED=true and, unless APP_DOCS_PUBLIC_ENABLED=true is also set, access remains restricted.
+    enabled: ${APP_DOCS_ENABLED:false}
+    public-enabled: ${APP_DOCS_PUBLIC_ENABLED:false}
 
 # Springdoc
 springdoc:
   api-docs:
+    enabled: ${app.docs.enabled}
     path: /api-docs
   swagger-ui:
+    enabled: ${app.docs.enabled}
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: method

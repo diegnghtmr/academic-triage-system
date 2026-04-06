@@ -18,7 +18,7 @@ public class BusinessRuleJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, length = 100, nullable = false)
+    @Column(unique = true, length = 150, nullable = false)
     private String name;
 
     @Column(length = 500)
@@ -27,7 +27,7 @@ public class BusinessRuleJpaEntity {
     @Column(name = "condition_type", length = 50, nullable = false)
     private String conditionType;
 
-    @Column(name = "condition_value", length = 255, nullable = false)
+    @Column(name = "condition_value", nullable = false)
     private String conditionValue;
 
     @Column(name = "resulting_priority", length = 20, nullable = false)

@@ -16,6 +16,9 @@ app:
   jwt:
     secret: test-secret-key-for-testing-only-256-bits-long!!
     expiration-ms: 3600000
+  docs:
+    enabled: true
+    public-enabled: true
 
 logging:
   level:

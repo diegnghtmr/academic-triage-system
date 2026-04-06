@@ -17,6 +17,17 @@ public class RequestType {
         this.active = active;
     }
 
+    private RequestType(String name, String description) {
+        this.id = null;
+        this.name = validateName(name);
+        this.description = validateDescription(description);
+        this.active = true;
+    }
+
+    public static RequestType createNew(String name, String description) {
+        return new RequestType(name, description);
+    }
+
     private String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("El nombre no puede ser null o vacío");
