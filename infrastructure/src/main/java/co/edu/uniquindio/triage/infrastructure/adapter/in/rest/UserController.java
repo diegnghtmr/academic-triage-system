@@ -1,4 +1,4 @@
-package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.controller;
+package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
