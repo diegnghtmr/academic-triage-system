@@ -6,23 +6,26 @@ import org.springframework.data.jpa.domain.Specification;
 
 public final class UserJpaSpecification {
 
+    private static final Specification<UserJpaEntity> UNRESTRICTED =
+            (root, query, cb) -> cb.conjunction();
+
     private UserJpaSpecification() {
     }
 
     public static Specification<UserJpaEntity> withCriteria(UserSearchCriteria criteria) {
-        return Specification.<UserJpaEntity>where(hasRole(criteria))
+        return hasRole(criteria)
                 .and(hasActive(criteria));
     }
 
     private static Specification<UserJpaEntity> hasRole(UserSearchCriteria criteria) {
         return criteria.role()
                 .map(role -> (Specification<UserJpaEntity>) (root, query, cb) -> cb.equal(root.get("role"), role.name()))
-                .orElse(null);
+                .orElse(UNRESTRICTED);
     }
 
     private static Specification<UserJpaEntity> hasActive(UserSearchCriteria criteria) {
         return criteria.active()
                 .map(active -> (Specification<UserJpaEntity>) (root, query, cb) -> cb.equal(root.get("active"), active))
-                .orElse(null);
+                .orElse(UNRESTRICTED);
     }
 }
