@@ -19,7 +19,7 @@ class AiConfigurationTest {
         .withConfiguration(AutoConfigurations.of(AiConfiguration.class));
 
     @Test
-    void whenApiKeyIsMissing_thenNoOpAdapterIsWired() {
+    void whenProviderIsMissing_thenNoOpAdapterIsWired() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(AiAssistantPort.class);
             assertThat(context.getBean(AiAssistantPort.class)).isInstanceOf(NoOpAiAssistantAdapter.class);
@@ -27,8 +27,8 @@ class AiConfigurationTest {
     }
 
     @Test
-    void whenApiKeyIsNone_thenNoOpAdapterIsWired() {
-        contextRunner.withPropertyValues("spring.ai.openai.api-key=none")
+    void whenProviderIsNone_thenNoOpAdapterIsWired() {
+        contextRunner.withPropertyValues("app.ai.provider=none")
             .run(context -> {
                 assertThat(context).hasSingleBean(AiAssistantPort.class);
                 assertThat(context.getBean(AiAssistantPort.class)).isInstanceOf(NoOpAiAssistantAdapter.class);
@@ -36,17 +36,26 @@ class AiConfigurationTest {
     }
 
     @Test
-    void whenApiKeyIsProvided_thenSpringAiAdapterIsWired() {
+    void whenProviderIsOpenAiAndBuilderExists_thenSpringAiAdapterIsWired() {
         ChatClient.Builder builder = mock(ChatClient.Builder.class);
         ChatClient chatClient = mock(ChatClient.class);
         when(builder.defaultSystem(anyString())).thenReturn(builder);
         when(builder.build()).thenReturn(chatClient);
 
-        contextRunner.withPropertyValues("spring.ai.openai.api-key=test-key")
+        contextRunner.withPropertyValues("app.ai.provider=openai")
             .withBean(ChatClient.Builder.class, () -> builder)
             .run(context -> {
                 assertThat(context).hasSingleBean(AiAssistantPort.class);
                 assertThat(context.getBean(AiAssistantPort.class)).isInstanceOf(SpringAiAssistantAdapter.class);
+            });
+    }
+
+    @Test
+    void whenProviderIsOpenAiButBuilderIsMissing_thenNoOpAdapterIsWiredAsFallback() {
+        contextRunner.withPropertyValues("app.ai.provider=openai")
+            .run(context -> {
+                assertThat(context).hasSingleBean(AiAssistantPort.class);
+                assertThat(context.getBean(AiAssistantPort.class)).isInstanceOf(NoOpAiAssistantAdapter.class);
             });
     }
 }

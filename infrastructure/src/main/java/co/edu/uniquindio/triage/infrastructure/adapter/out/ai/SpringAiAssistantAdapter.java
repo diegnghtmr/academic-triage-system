@@ -9,14 +9,12 @@ import co.edu.uniquindio.triage.domain.model.RequestType;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Component
 public class SpringAiAssistantAdapter implements AiAssistantPort {
 
     private final ChatClient chatClient;

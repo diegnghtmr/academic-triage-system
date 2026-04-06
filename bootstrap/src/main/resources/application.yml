@@ -52,6 +52,8 @@ spring:
 
 # JWT
 app:
+  ai:
+    provider: ${APP_AI_PROVIDER:none}
   jwt:
     secret: ${JWT_SECRET:default-dev-secret-change-me}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
