@@ -1,5 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
+import co.edu.uniquindio.triage.application.port.in.ai.GenerateSummaryUseCase;
+import co.edu.uniquindio.triage.application.port.in.ai.SuggestClassificationUseCase;
 import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
 import co.edu.uniquindio.triage.application.port.in.user.GetUsersQuery;
 import co.edu.uniquindio.triage.application.port.in.user.UpdateUserUseCase;
@@ -27,9 +29,13 @@ import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUse
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.report.GetDashboardMetricsQuery;
 import co.edu.uniquindio.triage.application.port.in.businessrule.*;
+import co.edu.uniquindio.triage.application.port.out.ai.AiAssistantPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.*;
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
+import co.edu.uniquindio.triage.application.service.ai.AiAuthorizationSupport;
+import co.edu.uniquindio.triage.application.service.ai.GenerateSummaryService;
+import co.edu.uniquindio.triage.application.service.ai.SuggestClassificationService;
 import co.edu.uniquindio.triage.application.service.auth.LoginService;
 import co.edu.uniquindio.triage.application.service.auth.RegisterService;
 import co.edu.uniquindio.triage.application.service.businessrule.*;
@@ -307,5 +313,24 @@ class BeanConfiguration {
     GetDashboardMetricsQuery getDashboardMetricsQuery(LoadDashboardMetricsPort loadDashboardMetricsPort,
                                                       ReportAuthorizationSupport reportAuthorizationSupport) {
         return new DashboardMetricsService(loadDashboardMetricsPort, reportAuthorizationSupport);
+    }
+
+    @Bean
+    AiAuthorizationSupport aiAuthorizationSupport() {
+        return new AiAuthorizationSupport();
+    }
+
+    @Bean
+    SuggestClassificationUseCase suggestClassificationUseCase(AiAssistantPort aiAssistantPort,
+                                                              LoadRequestTypePort loadRequestTypePort,
+                                                              AiAuthorizationSupport aiAuthorizationSupport) {
+        return new SuggestClassificationService(aiAssistantPort, loadRequestTypePort, aiAuthorizationSupport);
+    }
+
+    @Bean
+    GenerateSummaryUseCase generateSummaryUseCase(AiAssistantPort aiAssistantPort,
+                                                  LoadRequestPort loadRequestPort,
+                                                  AiAuthorizationSupport aiAuthorizationSupport) {
+        return new GenerateSummaryService(aiAssistantPort, loadRequestPort, aiAuthorizationSupport);
     }
 }

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice;
 
+import co.edu.uniquindio.triage.domain.exception.AiServiceUnavailableException;
 import co.edu.uniquindio.triage.domain.exception.AuthenticationFailedException;
 import co.edu.uniquindio.triage.domain.exception.DuplicateCatalogEntryException;
 import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
@@ -46,6 +47,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     ResponseEntity<ProblemDetail> handleEntityNotFound(EntityNotFoundException exception) {
         return build(HttpStatus.NOT_FOUND, exception.getMessage(), null);
+    }
+
+    @ExceptionHandler(AiServiceUnavailableException.class)
+    ResponseEntity<ProblemDetail> handleAiUnavailable(AiServiceUnavailableException exception) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), null);
     }
 
     @ExceptionHandler({InvalidStateTransitionException.class, BusinessRuleViolationException.class, IllegalStateException.class})
