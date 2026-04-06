@@ -3,10 +3,13 @@ package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
+import co.edu.uniquindio.triage.application.port.out.persistence.CreateRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.NewAcademicRequest;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SearchRequestPort;
+import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.model.AcademicRequest;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.AcademicRequestJpaEntity;
@@ -26,9 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Component
-class RequestPersistenceAdapter implements SaveRequestPort, LoadRequestPort, SearchRequestPort {
+class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, LoadRequestPort, SearchRequestPort {
 
     private static final Map<String, String> SORT_FIELDS = Map.of(
             "id", "id",
@@ -52,8 +56,66 @@ class RequestPersistenceAdapter implements SaveRequestPort, LoadRequestPort, Sea
 
     @Override
     @Transactional
+    public AcademicRequest create(NewAcademicRequest request) {
+        Objects.requireNonNull(request, "La solicitud no puede ser null");
+
+        var applicantReference = entityManager.getReference(UserJpaEntity.class, request.applicantId().value());
+        var originChannelReference = entityManager.getReference(OriginChannelJpaEntity.class, request.originChannelId().value());
+        var requestTypeReference = entityManager.getReference(RequestTypeJpaEntity.class, request.requestTypeId().value());
+        var performedByReference = entityManager.getReference(UserJpaEntity.class, request.applicantId().value());
+
+        var entity = new AcademicRequestJpaEntity();
+        entity.setDescription(request.description());
+        entity.setStatus(RequestStatus.REGISTERED.name());
+        entity.setDeadline(request.deadline());
+        entity.setRegistrationDateTime(request.registrationDateTime());
+        entity.setAiSuggested(request.aiSuggested());
+        entity.setApplicant(applicantReference);
+        entity.setOriginChannel(originChannelReference);
+        entity.setRequestType(requestTypeReference);
+        entityManager.persist(entity);
+        entityManager.flush();
+
+        var aggregate = new AcademicRequest(
+                new RequestId(entity.getId()),
+                request.description(),
+                request.applicantId(),
+                request.originChannelId(),
+                request.requestTypeId(),
+                request.deadline(),
+                request.aiSuggested(),
+                request.registrationDateTime()
+        );
+
+        var persistedState = requestPersistenceMapper.toEntity(
+                aggregate,
+                applicantReference,
+                null,
+                originChannelReference,
+                requestTypeReference,
+                businessRuleId -> entityManager.getReference(BusinessRuleJpaEntity.class, businessRuleId),
+                userId -> userId.equals(request.applicantId().value())
+                        ? performedByReference
+                        : entityManager.getReference(UserJpaEntity.class, userId)
+        );
+
+        var history = new ArrayList<>(persistedState.getHistory());
+        history.forEach(entry -> entry.setRequest(entity));
+        entity.getHistory().clear();
+        entity.getHistory().addAll(history);
+        entityManager.flush();
+
+        return aggregate;
+    }
+
+    @Override
+    @Transactional
     public void save(AcademicRequest request) {
         Objects.requireNonNull(request, "La solicitud no puede ser null");
+
+        if (!requestJpaRepository.existsById(request.getId().value())) {
+            throw new IllegalStateException("No se puede actualizar una solicitud inexistente con save(); use create() para nuevas solicitudes");
+        }
 
         var applicantReference = entityManager.getReference(UserJpaEntity.class, request.getApplicantId().value());
         var responsibleReference = request.getResponsibleId() == null
@@ -72,20 +134,8 @@ class RequestPersistenceAdapter implements SaveRequestPort, LoadRequestPort, Sea
                 userId -> entityManager.getReference(UserJpaEntity.class, userId)
         );
 
-        if (requestJpaRepository.existsById(request.getId().value())) {
-            requestJpaRepository.save(entity);
-            return;
-        }
-
-        var reservedRequestId = request.getId().value();
-        entity.setId(null);
-        entity.getHistory().forEach(historyEntry -> historyEntry.setId(null));
-        entityManager.persist(entity);
+        entityManager.merge(entity);
         entityManager.flush();
-
-        if (!Objects.equals(entity.getId(), reservedRequestId)) {
-            throw new IllegalStateException("El id reservado para la solicitud no coincidió con el generado por la base de datos");
-        }
     }
 
     @Override

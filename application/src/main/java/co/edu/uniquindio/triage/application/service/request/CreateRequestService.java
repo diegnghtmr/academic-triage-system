@@ -4,15 +4,14 @@ import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
+import co.edu.uniquindio.triage.application.port.out.persistence.CreateRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.NextRequestIdPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.NewAcademicRequest;
 import co.edu.uniquindio.triage.domain.enums.Role;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
-import co.edu.uniquindio.triage.domain.model.AcademicRequest;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -20,22 +19,19 @@ import java.util.Optional;
 
 public class CreateRequestService implements CreateRequestUseCase {
 
-    private final NextRequestIdPort nextRequestIdPort;
+    private final CreateRequestPort createRequestPort;
     private final LoadRequestTypePort loadRequestTypePort;
     private final LoadOriginChannelPort loadOriginChannelPort;
     private final LoadUserAuthPort loadUserAuthPort;
-    private final SaveRequestPort saveRequestPort;
 
-    public CreateRequestService(NextRequestIdPort nextRequestIdPort,
+    public CreateRequestService(CreateRequestPort createRequestPort,
                                 LoadRequestTypePort loadRequestTypePort,
                                 LoadOriginChannelPort loadOriginChannelPort,
-                                LoadUserAuthPort loadUserAuthPort,
-                                SaveRequestPort saveRequestPort) {
-        this.nextRequestIdPort = Objects.requireNonNull(nextRequestIdPort, "El nextRequestIdPort no puede ser null");
+                                LoadUserAuthPort loadUserAuthPort) {
+        this.createRequestPort = Objects.requireNonNull(createRequestPort, "El createRequestPort no puede ser null");
         this.loadRequestTypePort = Objects.requireNonNull(loadRequestTypePort, "El loadRequestTypePort no puede ser null");
         this.loadOriginChannelPort = Objects.requireNonNull(loadOriginChannelPort, "El loadOriginChannelPort no puede ser null");
         this.loadUserAuthPort = Objects.requireNonNull(loadUserAuthPort, "El loadUserAuthPort no puede ser null");
-        this.saveRequestPort = Objects.requireNonNull(saveRequestPort, "El saveRequestPort no puede ser null");
     }
 
     @Override
@@ -56,8 +52,7 @@ public class CreateRequestService implements CreateRequestUseCase {
                 .filter(channel -> channel.isActive())
                 .orElseThrow(() -> new IllegalArgumentException("El canal de origen no existe o está inactivo"));
 
-        var request = new AcademicRequest(
-                nextRequestIdPort.nextId(),
+        var request = createRequestPort.create(new NewAcademicRequest(
                 command.description(),
                 requester.getId().orElseThrow(),
                 command.originChannelId(),
@@ -65,9 +60,7 @@ public class CreateRequestService implements CreateRequestUseCase {
                 command.deadline(),
                 false,
                 LocalDateTime.now()
-        );
-
-        saveRequestPort.save(request);
+        ));
         return new RequestSummary(request, requestType, originChannel, requester, Optional.empty());
     }
 

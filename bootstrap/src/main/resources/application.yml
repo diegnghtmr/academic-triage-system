@@ -55,7 +55,7 @@ app:
   ai:
     provider: ${APP_AI_PROVIDER:none}
   jwt:
-    secret: ${JWT_SECRET:default-dev-secret-change-me-please}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   docs:
     # Outside dev/test docs stay disabled by default. Operators may opt in explicitly with
