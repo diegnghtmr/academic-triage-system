@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
+import co.edu.uniquindio.triage.application.port.out.persistence.NewAcademicRequest;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
 import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.Priority;
@@ -86,7 +87,6 @@ class RequestPersistenceAdapterTest {
     private EntityManager entityManager;
 
     private RequestPersistenceAdapter requestPersistenceAdapter;
-    private RequestIdPersistenceAdapter requestIdPersistenceAdapter;
     private CatalogPersistenceAdapter catalogPersistenceAdapter;
 
     @BeforeEach
@@ -95,19 +95,16 @@ class RequestPersistenceAdapterTest {
         var catalogMapper = Mappers.getMapper(CatalogPersistenceMapper.class);
         var requestMapper = new RequestPersistenceMapper(userMapper, catalogMapper);
         requestPersistenceAdapter = new RequestPersistenceAdapter(requestJpaRepository, requestMapper, entityManager);
-        requestIdPersistenceAdapter = new RequestIdPersistenceAdapter(requestJpaRepository);
         catalogPersistenceAdapter = new CatalogPersistenceAdapter(requestTypeJpaRepository, originChannelJpaRepository, catalogMapper);
     }
 
     @Test
-    void nextIdSaveAndLoadMustPreserveAggregateConsistency() {
+    void createMustPersistAndLoadAggregateWithDatabaseGeneratedId() {
         var requester = saveUser("student-a", Role.STUDENT);
         var requestType = saveRequestType("Cupo batch2");
         var originChannel = saveOriginChannel("Correo batch2");
-        var nextId = requestIdPersistenceAdapter.nextId();
 
-        var request = new AcademicRequest(
-                nextId,
+        var request = requestPersistenceAdapter.create(new NewAcademicRequest(
                 "Necesito un cupo adicional para la materia de arquitectura",
                 requester.getId().orElseThrow(),
                 originChannel.getId(),
@@ -115,22 +112,20 @@ class RequestPersistenceAdapterTest {
                 LocalDate.of(2026, 4, 10),
                 false,
                 LocalDateTime.of(2026, 3, 23, 10, 30)
-        );
-
-        requestPersistenceAdapter.save(request);
+        ));
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(nextId);
+        var loaded = requestPersistenceAdapter.loadById(request.getId());
 
         assertThat(loaded).isPresent();
-        assertThat(loaded.orElseThrow().getId()).isEqualTo(nextId);
+        assertThat(loaded.orElseThrow().getId()).isEqualTo(request.getId());
         assertThat(loaded.orElseThrow().getApplicantId()).isEqualTo(requester.getId().orElseThrow());
         assertThat(loaded.orElseThrow().getOriginChannelId()).isEqualTo(originChannel.getId());
         assertThat(loaded.orElseThrow().getRequestTypeId()).isEqualTo(requestType.getId());
         assertThat(loaded.orElseThrow().getHistory()).hasSize(1);
         assertThat(loaded.orElseThrow().getHistory().getFirst().getAction()).isEqualTo(HistoryAction.REGISTERED);
-        assertThat(loaded.orElseThrow().getHistory().getFirst().getRequestId()).isEqualTo(nextId);
+        assertThat(loaded.orElseThrow().getHistory().getFirst().getRequestId()).isEqualTo(request.getId());
     }
 
     @Test
@@ -140,58 +135,34 @@ class RequestPersistenceAdapterTest {
         var requestType = saveRequestType("Reintegro batch2");
         var originChannel = saveOriginChannel("Sistema web batch2");
 
-        var reservedId = requestIdPersistenceAdapter.nextId();
-        var request = AcademicRequest.reconstitute(
-                reservedId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                requestType,
                 "Solicito revisión prioritaria del reintegro académico",
-                RequestStatus.IN_PROGRESS,
-                Priority.HIGH,
-                "Regla aplicada",
                 LocalDate.of(2026, 4, 15),
                 LocalDateTime.of(2026, 3, 20, 8, 0),
-                false,
-                null,
-                null,
-                null,
-                null,
-                requester.getId().orElseThrow(),
-                staff.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of(
-                        new co.edu.uniquindio.triage.domain.model.RequestHistory(
-                                null,
-                                HistoryAction.ASSIGNED,
-                                "Asignada a staff",
-                                LocalDateTime.of(2026, 3, 20, 9, 0),
-                                reservedId,
-                                staff.getId().orElseThrow()
-                        ),
-                        new co.edu.uniquindio.triage.domain.model.RequestHistory(
-                                null,
-                                HistoryAction.REGISTERED,
-                                "Registro inicial",
-                                LocalDateTime.of(2026, 3, 20, 8, 0),
-                                reservedId,
-                                requester.getId().orElseThrow()
-                        )
-                )
+                false
         );
+        request.classify(requestType.getId(), "Registro inicial", requester.getId().orElseThrow(), LocalDateTime.of(2026, 3, 20, 8, 30));
+        request.prioritize(Priority.HIGH, "Regla aplicada", requester.getId().orElseThrow(), LocalDateTime.of(2026, 3, 20, 8, 45));
+        request.assign(staff, staff.getId().orElseThrow(), "Asignada a staff", LocalDateTime.of(2026, 3, 20, 9, 0));
 
         requestPersistenceAdapter.save(request);
         entityManager.flush();
         entityManager.clear();
 
-        var detail = requestPersistenceAdapter.loadDetailById(reservedId);
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId());
 
         assertThat(detail).isPresent();
         assertThat(detail.orElseThrow().requester().getId().orElseThrow()).isEqualTo(requester.getId().orElseThrow());
         assertThat(detail.orElseThrow().assignedTo()).isPresent();
         assertThat(detail.orElseThrow().assignedTo().orElseThrow().getId().orElseThrow()).isEqualTo(staff.getId().orElseThrow());
-        assertThat(detail.orElseThrow().history()).hasSize(2);
+        assertThat(detail.orElseThrow().history()).hasSize(4);
         assertThat(detail.orElseThrow().history().get(0).historyEntry().getAction()).isEqualTo(HistoryAction.REGISTERED);
-        assertThat(detail.orElseThrow().history().get(1).historyEntry().getAction()).isEqualTo(HistoryAction.ASSIGNED);
+        assertThat(detail.orElseThrow().history().get(1).historyEntry().getAction()).isEqualTo(HistoryAction.CLASSIFIED);
+        assertThat(detail.orElseThrow().history().get(2).historyEntry().getAction()).isEqualTo(HistoryAction.PRIORITIZED);
+        assertThat(detail.orElseThrow().history().get(3).historyEntry().getAction()).isEqualTo(HistoryAction.ASSIGNED);
     }
 
     @Test
@@ -202,69 +173,36 @@ class RequestPersistenceAdapterTest {
         var requestType = saveRequestType("Homologación batch2");
         var originChannel = saveOriginChannel("Ventanilla batch2");
 
-        var firstId = requestIdPersistenceAdapter.nextId();
-        requestPersistenceAdapter.save(AcademicRequest.reconstitute(
-                firstId,
+        var firstId = persistRequest(
+                studentA,
+                staff,
+                requestType,
+                originChannel,
                 "Primera solicitud del estudiante A",
-                RequestStatus.IN_PROGRESS,
-                Priority.MEDIUM,
-                "Pendiente de revisión",
-                null,
                 LocalDateTime.of(2026, 3, 10, 9, 0),
-                false,
-                null,
-                null,
-                null,
-                null,
-                studentA.getId().orElseThrow(),
-                staff.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
-        ));
-        var secondId = requestIdPersistenceAdapter.nextId();
-        requestPersistenceAdapter.save(AcademicRequest.reconstitute(
-                secondId,
+                RequestStatus.IN_PROGRESS,
+                Priority.MEDIUM
+        );
+        var secondId = persistRequest(
+                studentA,
+                staff,
+                requestType,
+                originChannel,
                 "Solicitud más reciente del estudiante A",
-                RequestStatus.IN_PROGRESS,
-                Priority.MEDIUM,
-                "Pendiente de revisión",
-                null,
                 LocalDateTime.of(2026, 3, 12, 9, 0),
-                false,
-                null,
-                null,
-                null,
-                null,
-                studentA.getId().orElseThrow(),
-                staff.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
-        ));
-        var thirdId = requestIdPersistenceAdapter.nextId();
-        requestPersistenceAdapter.save(AcademicRequest.reconstitute(
-                thirdId,
-                "Solicitud de otro estudiante",
                 RequestStatus.IN_PROGRESS,
-                Priority.MEDIUM,
-                "Pendiente de revisión",
-                null,
+                Priority.MEDIUM
+        );
+        var thirdId = persistRequest(
+                studentB,
+                staff,
+                requestType,
+                originChannel,
+                "Solicitud de otro estudiante",
                 LocalDateTime.of(2026, 3, 14, 9, 0),
-                false,
-                null,
-                null,
-                null,
-                null,
-                studentB.getId().orElseThrow(),
-                staff.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
-        ));
+                RequestStatus.IN_PROGRESS,
+                Priority.MEDIUM
+        );
         entityManager.flush();
         entityManager.clear();
 
@@ -298,22 +236,15 @@ class RequestPersistenceAdapterTest {
         var initialType = saveRequestType("Tipo inicial triage");
         var classifiedType = saveRequestType("Tipo clasificado triage");
         var originChannel = saveOriginChannel("Canal triage");
-        var requestId = requestIdPersistenceAdapter.nextId();
-
-        requestPersistenceAdapter.save(new AcademicRequest(
-                requestId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                initialType,
                 "Solicitud para validar persistencia de triage",
-                requester.getId().orElseThrow(),
-                originChannel.getId(),
-                initialType.getId(),
                 LocalDate.of(2026, 4, 20),
-                false,
-                LocalDateTime.of(2026, 3, 24, 8, 0)
-        ));
-        entityManager.flush();
-        entityManager.clear();
-
-        var request = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+                LocalDateTime.of(2026, 3, 24, 8, 0),
+                false
+        );
         request.classify(
                 classifiedType.getId(),
                 "Clasificación manual",
@@ -340,8 +271,8 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
-        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId()).orElseThrow();
 
         assertThat(loaded.getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
         assertThat(loaded.getRequestTypeId()).isEqualTo(classifiedType.getId());
@@ -377,22 +308,15 @@ class RequestPersistenceAdapterTest {
         var initialType = saveRequestType("Tipo inicial attend");
         var classifiedType = saveRequestType("Tipo clasificado attend");
         var originChannel = saveOriginChannel("Canal attend");
-        var requestId = requestIdPersistenceAdapter.nextId();
-
-        requestPersistenceAdapter.save(new AcademicRequest(
-                requestId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                initialType,
                 "Solicitud para validar persistencia de atención",
-                requester.getId().orElseThrow(),
-                originChannel.getId(),
-                initialType.getId(),
                 LocalDate.of(2026, 4, 22),
-                false,
-                LocalDateTime.of(2026, 3, 24, 8, 0)
-        ));
-        entityManager.flush();
-        entityManager.clear();
-
-        var request = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+                LocalDateTime.of(2026, 3, 24, 8, 0),
+                false
+        );
         request.classify(
                 classifiedType.getId(),
                 "Clasificación para atención",
@@ -415,7 +339,7 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var inProgressRequest = requestPersistenceAdapter.loadById(requestId).orElseThrow();
+        var inProgressRequest = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
         var attendanceObservation = "Atención manual completada con validación documental";
         inProgressRequest.attend(attendanceObservation, assignee.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 10, 0));
 
@@ -423,8 +347,8 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
-        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId()).orElseThrow();
 
         assertThat(loaded.getStatus()).isEqualTo(RequestStatus.ATTENDED);
         assertThat(loaded.getAttendanceObservation()).isEqualTo(attendanceObservation);
@@ -454,28 +378,19 @@ class RequestPersistenceAdapterTest {
         var staff = saveUser("close-staff", Role.STAFF);
         var requestType = saveRequestType("Cierre extenso");
         var originChannel = saveOriginChannel("Mesa de ayuda");
-        var requestId = requestIdPersistenceAdapter.nextId();
-
-        var request = AcademicRequest.reconstitute(
-                requestId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                requestType,
                 "Solicitud para validar el cierre con observación extensa",
-                RequestStatus.ATTENDED,
-                Priority.MEDIUM,
-                "Priorizada para cierre",
                 LocalDate.of(2026, 4, 25),
                 LocalDateTime.of(2026, 3, 24, 8, 0),
-                false,
-                null,
-                null,
-                null,
-                "Atendida previamente",
-                requester.getId().orElseThrow(),
-                staff.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
+                false
         );
+        request.classify(requestType.getId(), "Clasificación para cierre", staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 8, 30));
+        request.prioritize(Priority.MEDIUM, "Priorizada para cierre", staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 8, 45));
+        request.assign(staff, staff.getId().orElseThrow(), "Asignada para cierre", LocalDateTime.of(2026, 3, 24, 9, 0));
+        request.attend("Atendida previamente", staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 9, 30));
         var closingObservation = "c".repeat(2000);
 
         request.close(closingObservation, staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 12, 0));
@@ -484,8 +399,8 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
-        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId()).orElseThrow();
 
         assertThat(loaded.getStatus()).isEqualTo(RequestStatus.CLOSED);
         assertThat(loaded.getClosingObservation()).hasSize(2000);
@@ -507,28 +422,17 @@ class RequestPersistenceAdapterTest {
         var staff = saveUser("cancel-staff", Role.STAFF);
         var requestType = saveRequestType("Cancelación extensa");
         var originChannel = saveOriginChannel("Portal cancelación");
-        var requestId = requestIdPersistenceAdapter.nextId();
-
-        var request = AcademicRequest.reconstitute(
-                requestId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                requestType,
                 "Solicitud para validar cancelación persistida",
-                RequestStatus.CLASSIFIED,
-                Priority.MEDIUM,
-                "Clasificada para eventual cancelación",
                 LocalDate.of(2026, 4, 26),
                 LocalDateTime.of(2026, 3, 24, 8, 0),
-                false,
-                null,
-                null,
-                null,
-                null,
-                requester.getId().orElseThrow(),
-                null,
-                originChannel.getId(),
-                requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
+                false
         );
+        request.classify(requestType.getId(), "Clasificada para eventual cancelación", staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 8, 30));
+        request.prioritize(Priority.MEDIUM, "Clasificada para eventual cancelación", staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 8, 45));
         var cancellationReason = "x".repeat(2000);
 
         request.cancel(cancellationReason, staff.getId().orElseThrow(), LocalDateTime.of(2026, 3, 24, 12, 30));
@@ -537,8 +441,8 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
-        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId()).orElseThrow();
 
         assertThat(loaded.getStatus()).isEqualTo(RequestStatus.CANCELLED);
         assertThat(loaded.getCancellationReason()).hasSize(2000);
@@ -561,17 +465,14 @@ class RequestPersistenceAdapterTest {
         var admin = saveUser("reject-admin", Role.ADMIN);
         var requestType = saveRequestType("Rechazo extenso");
         var originChannel = saveOriginChannel("Portal rechazo");
-        var requestId = requestIdPersistenceAdapter.nextId();
-
-        var request = new AcademicRequest(
-                requestId,
+        var request = createRegisteredRequest(
+                requester,
+                originChannel,
+                requestType,
                 "Solicitud para validar rechazo persistido",
-                requester.getId().orElseThrow(),
-                originChannel.getId(),
-                requestType.getId(),
                 LocalDate.of(2026, 4, 27),
-                false,
-                LocalDateTime.of(2026, 3, 24, 8, 0)
+                LocalDateTime.of(2026, 3, 24, 8, 0),
+                false
         );
         var rejectionReason = "r".repeat(2000);
 
@@ -581,8 +482,8 @@ class RequestPersistenceAdapterTest {
         entityManager.flush();
         entityManager.clear();
 
-        var loaded = requestPersistenceAdapter.loadById(requestId).orElseThrow();
-        var detail = requestPersistenceAdapter.loadDetailById(requestId).orElseThrow();
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        var detail = requestPersistenceAdapter.loadDetailById(request.getId()).orElseThrow();
 
         assertThat(loaded.getStatus()).isEqualTo(RequestStatus.REJECTED);
         assertThat(loaded.getRejectionReason()).hasSize(2000);
@@ -664,7 +565,7 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.REGISTERED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
-                Optional.of(staff.getId().orElseThrow()),
+                Optional.empty(),
                 Optional.of(requester.getId().orElseThrow()),
                 Optional.of(LocalDate.of(2026, 3, 10)),
                 Optional.of(LocalDate.of(2026, 3, 12)),
@@ -676,7 +577,7 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.REGISTERED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
-                Optional.of(staff.getId().orElseThrow()),
+                Optional.empty(),
                 Optional.of(requester.getId().orElseThrow()),
                 Optional.of(LocalDate.of(2026, 3, 10)),
                 Optional.of(LocalDate.of(2026, 3, 12)),
@@ -737,7 +638,7 @@ class RequestPersistenceAdapterTest {
                 Optional.of(RequestStatus.CLASSIFIED),
                 Optional.of(requestType.getId()),
                 Optional.of(Priority.HIGH),
-                Optional.of(staff.getId().orElseThrow()),
+                Optional.empty(),
                 Optional.of(requester.getId().orElseThrow()),
                 Optional.empty(),
                 Optional.empty(),
@@ -815,28 +716,36 @@ class RequestPersistenceAdapterTest {
                                      LocalDateTime registrationDateTime,
                                      RequestStatus status,
                                      Priority priority) {
-        var requestId = requestIdPersistenceAdapter.nextId();
-        requestPersistenceAdapter.save(AcademicRequest.reconstitute(
-                requestId,
+        var request = createRegisteredRequest(requester, originChannel, requestType, description, null, registrationDateTime, false);
+        if (status != RequestStatus.REGISTERED) {
+            request.classify(requestType.getId(), "Clasificación " + description, assignedTo == null ? requester.getId().orElseThrow() : assignedTo.getId().orElseThrow(), registrationDateTime.plusMinutes(1));
+        }
+        if (priority != null) {
+            request.prioritize(priority, "Justificación " + description, assignedTo == null ? requester.getId().orElseThrow() : assignedTo.getId().orElseThrow(), registrationDateTime.plusMinutes(2));
+        }
+        if (status == RequestStatus.IN_PROGRESS && assignedTo != null) {
+            request.assign(assignedTo, assignedTo.getId().orElseThrow(), "Asignación " + description, registrationDateTime.plusMinutes(3));
+        }
+        requestPersistenceAdapter.save(request);
+        return request.getId();
+    }
+
+    private AcademicRequest createRegisteredRequest(User requester,
+                                                    OriginChannel originChannel,
+                                                    RequestType requestType,
+                                                    String description,
+                                                    LocalDate deadline,
+                                                    LocalDateTime registrationDateTime,
+                                                    boolean aiSuggested) {
+        return requestPersistenceAdapter.create(new NewAcademicRequest(
                 description,
-                status,
-                priority,
-                "Justificación " + description,
-                null,
-                registrationDateTime,
-                false,
-                null,
-                null,
-                null,
-                null,
                 requester.getId().orElseThrow(),
-                assignedTo == null ? null : assignedTo.getId().orElse(null),
                 originChannel.getId(),
                 requestType.getId(),
-                java.util.List.of(),
-                java.util.List.of()
+                deadline,
+                aiSuggested,
+                registrationDateTime
         ));
-        return requestId;
     }
 
     @SpringBootConfiguration
