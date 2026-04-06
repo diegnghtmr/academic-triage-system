@@ -14,7 +14,6 @@ import co.edu.uniquindio.triage.domain.model.User;
 import co.edu.uniquindio.triage.domain.model.Username;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.controller.UserController;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
