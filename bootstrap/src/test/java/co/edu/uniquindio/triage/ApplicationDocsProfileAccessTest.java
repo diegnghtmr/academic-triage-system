@@ -21,8 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         classes = ApplicationDocsDevProfileAccessTest.DocsProfileTestApplication.class,
         properties = {
                 "app.jwt.secret=12345678901234567890123456789012",
-                "app.jwt.expiration-ms=86400000",
-                "spring.ai.openai.api-key=test-key"
+                "app.jwt.expiration-ms=86400000"
         }
 )
 @AutoConfigureMockMvc
@@ -56,8 +55,7 @@ class ApplicationDocsDevProfileAccessTest {
         classes = ApplicationDocsDevProfileAccessTest.DocsProfileTestApplication.class,
         properties = {
                 "app.jwt.secret=12345678901234567890123456789012",
-                "app.jwt.expiration-ms=86400000",
-                "spring.ai.openai.api-key=test-key"
+                "app.jwt.expiration-ms=86400000"
         }
 )
 @AutoConfigureMockMvc

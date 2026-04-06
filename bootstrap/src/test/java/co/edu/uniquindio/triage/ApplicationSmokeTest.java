@@ -16,7 +16,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
         properties = {
             "app.jwt.secret=12345678901234567890123456789012",
             "app.jwt.expiration-ms=86400000",
-            "spring.ai.openai.api-key=test-key",
             "spring.autoconfigure.exclude="
                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
