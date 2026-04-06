@@ -43,7 +43,7 @@ public class AcademicRequest {
                            LocalDate deadline, boolean aiSuggested,
                            LocalDateTime registrationDateTime) {
         this.id = Objects.requireNonNull(id, "El id no puede ser null");
-        this.description = validateDescription(description);
+        this.description = normalizeDescription(description);
         this.status = RequestStatus.REGISTERED;
         this.priority = null;
         this.priorityJustification = null;
@@ -315,7 +315,7 @@ public class AcademicRequest {
         return this.priority != null && this.priorityJustification != null && !this.priorityJustification.isBlank();
     }
 
-    private String validateDescription(String description) {
+    public static String normalizeDescription(String description) {
         if (description == null || description.isBlank()) {
             throw new IllegalArgumentException("La descripción no puede ser null o vacía");
         }

@@ -1,4 +1,6 @@
 app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32b}
   docs:
     enabled: true
     public-enabled: true

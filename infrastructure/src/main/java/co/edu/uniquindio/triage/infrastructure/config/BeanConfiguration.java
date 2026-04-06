@@ -163,17 +163,15 @@ class BeanConfiguration {
     }
 
     @Bean
-    CreateRequestUseCase createRequestUseCase(NextRequestIdPort nextRequestIdPort,
+    CreateRequestUseCase createRequestUseCase(CreateRequestPort createRequestPort,
                                               LoadRequestTypePort loadRequestTypePort,
                                               LoadOriginChannelPort loadOriginChannelPort,
-                                              LoadUserAuthPort loadUserAuthPort,
-                                              SaveRequestPort saveRequestPort) {
+                                              LoadUserAuthPort loadUserAuthPort) {
         return new CreateRequestService(
-                nextRequestIdPort,
+                createRequestPort,
                 loadRequestTypePort,
                 loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
+                loadUserAuthPort
         );
     }
 

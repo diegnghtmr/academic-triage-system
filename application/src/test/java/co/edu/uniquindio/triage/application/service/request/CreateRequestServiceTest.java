@@ -2,11 +2,11 @@ package co.edu.uniquindio.triage.application.service.request;
 
 import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
+import co.edu.uniquindio.triage.application.port.out.persistence.CreateRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.NextRequestIdPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.NewAcademicRequest;
 import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.enums.Role;
@@ -39,7 +39,7 @@ class CreateRequestServiceTest {
     private StubLoadRequestTypePort loadRequestTypePort;
     private StubLoadOriginChannelPort loadOriginChannelPort;
     private StubLoadUserAuthPort loadUserAuthPort;
-    private CapturingSaveRequestPort saveRequestPort;
+    private CapturingCreateRequestPort createRequestPort;
     private CreateRequestService service;
 
     @BeforeEach
@@ -47,13 +47,12 @@ class CreateRequestServiceTest {
         loadRequestTypePort = new StubLoadRequestTypePort();
         loadOriginChannelPort = new StubLoadOriginChannelPort();
         loadUserAuthPort = new StubLoadUserAuthPort();
-        saveRequestPort = new CapturingSaveRequestPort();
+        createRequestPort = new CapturingCreateRequestPort();
         service = new CreateRequestService(
-                new FixedNextRequestIdPort(new RequestId(42L)),
+                createRequestPort,
                 loadRequestTypePort,
                 loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
+                loadUserAuthPort
         );
     }
 
@@ -80,7 +79,12 @@ class CreateRequestServiceTest {
         assertThat(result.requestType()).isEqualTo(requestType);
         assertThat(result.originChannel()).isEqualTo(originChannel);
         assertThat(result.assignedTo()).isEmpty();
-        assertThat(saveRequestPort.saved()).containsSame(result.request());
+        assertThat(createRequestPort.created()).containsSame(result.request());
+        assertThat(createRequestPort.command()).hasValueSatisfying(createdCommand -> {
+            assertThat(createdCommand.applicantId()).isEqualTo(requester.getId().orElseThrow());
+            assertThat(createdCommand.requestTypeId()).isEqualTo(requestType.getId());
+            assertThat(createdCommand.originChannelId()).isEqualTo(originChannel.getId());
+        });
     }
 
     @Test
@@ -92,7 +96,7 @@ class CreateRequestServiceTest {
                 actor
         )).isInstanceOf(UnauthorizedOperationException.class);
 
-        assertThat(saveRequestPort.saved()).isEmpty();
+        assertThat(createRequestPort.created()).isEmpty();
     }
 
     @Test
@@ -108,7 +112,27 @@ class CreateRequestServiceTest {
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("tipo de solicitud");
 
-        assertThat(saveRequestPort.saved()).isEmpty();
+        assertThat(createRequestPort.created()).isEmpty();
+    }
+
+    @Test
+    void createCommandMustPreserveDomainDescriptionNormalization() {
+        var actor = new AuthenticatedActor(new UserId(7L), "jperez", Role.STUDENT);
+        var requester = persistedUser(7L, "jperez", Role.STUDENT, true);
+        var requestType = new RequestType(new RequestTypeId(3L), "Cupo", "Solicitud de cupo", true);
+        var originChannel = new OriginChannel(new OriginChannelId(2L), "Correo", true);
+        loadUserAuthPort.store(requester);
+        loadRequestTypePort.store(requestType);
+        loadOriginChannelPort.store(originChannel);
+
+        service.execute(
+                new CreateRequestCommand(requestType.getId(), originChannel.getId(), "   Necesito un cupo adicional para la materia   ", null),
+                actor
+        );
+
+        assertThat(createRequestPort.command()).hasValueSatisfying(createdCommand ->
+                assertThat(createdCommand.description()).isEqualTo("Necesito un cupo adicional para la materia")
+        );
     }
 
     private static User persistedUser(long id, String username, Role role, boolean active) {
@@ -123,13 +147,6 @@ class CreateRequestServiceTest {
                 role,
                 active
         );
-    }
-
-    private record FixedNextRequestIdPort(RequestId requestId) implements NextRequestIdPort {
-        @Override
-        public RequestId nextId() {
-            return requestId;
-        }
     }
 
     private static final class StubLoadRequestTypePort implements LoadRequestTypePort {
@@ -196,16 +213,32 @@ class CreateRequestServiceTest {
         }
     }
 
-    private static final class CapturingSaveRequestPort implements SaveRequestPort {
-        private AcademicRequest saved;
+    private static final class CapturingCreateRequestPort implements CreateRequestPort {
+        private AcademicRequest created;
+        private NewAcademicRequest command;
 
         @Override
-        public void save(AcademicRequest request) {
-            this.saved = request;
+        public AcademicRequest create(NewAcademicRequest request) {
+            this.command = request;
+            this.created = new AcademicRequest(
+                    new RequestId(42L),
+                    request.description(),
+                    request.applicantId(),
+                    request.originChannelId(),
+                    request.requestTypeId(),
+                    request.deadline(),
+                    request.aiSuggested(),
+                    request.registrationDateTime()
+            );
+            return created;
         }
 
-        Optional<AcademicRequest> saved() {
-            return Optional.ofNullable(saved);
+        Optional<AcademicRequest> created() {
+            return Optional.ofNullable(created);
+        }
+
+        Optional<NewAcademicRequest> command() {
+            return Optional.ofNullable(command);
         }
     }
 }
