@@ -2,6 +2,7 @@ services:
   mariadb:
     image: mariadb:11
     container_name: triage-mariadb
+    restart: unless-stopped
     environment:
       MARIADB_DATABASE: triage_db
       MARIADB_USER: ${DB_USER:-triage_user}
@@ -16,9 +17,40 @@ services:
       interval: 5s
       retries: 5
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: academic-triage-app
+    restart: unless-stopped
+    init: true
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_URL: jdbc:mariadb://mariadb:3306/triage_db
+      DB_USER: ${DB_USER:-triage_user}
+      DB_PASS: ${DB_PASS:-triage_secret}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-32b}
+      APP_DOCS_ENABLED: ${APP_DOCS_ENABLED:-true}
+      APP_DOCS_PUBLIC_ENABLED: ${APP_DOCS_PUBLIC_ENABLED:-true}
+      APP_AI_PROVIDER: ${APP_AI_PROVIDER:-none}
+      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY:-}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
   adminer:
     image: adminer:latest
     container_name: triage-adminer
+    restart: unless-stopped
+    profiles: ["tools"]
     ports:
       - "8081:8080"
     depends_on:
