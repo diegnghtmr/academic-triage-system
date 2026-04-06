@@ -4,6 +4,8 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 
 import static com.tngtech.archunit.library.Architectures.onionArchitecture;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
@@ -20,11 +22,26 @@ class ArchitectureTest {
             // so we still enforce onion boundaries without breaking on known in-domain dependencies.
             .domainModels("..domain.model..", "..domain.enums..", "..domain.event..", "..domain.service..", "..domain.exception..")
             .applicationServices("..application..")
-            // The repo still has legitimate cross-package collaboration inside the infrastructure module
-            // (for example config wiring, security adapters, and REST support classes). Model that whole
-            // module as the outer adapter ring for now; finer-grained adapter rings can come once those
-            // internal couplings are refactored.
-            .adapter("infrastructure", "..infrastructure..");
+            .adapter("rest", "..infrastructure.adapter.in.rest..")
+            .adapter("persistence", "..infrastructure.adapter.out.persistence..")
+            .adapter("security", "..infrastructure.adapter.out.security..")
+            .adapter("ai", "..infrastructure.adapter.out.ai..")
+            .adapter("config", "..infrastructure.config..")
+            .ignoreDependency(
+                    new DescribedPredicate<JavaClass>("config layer") {
+                        @Override
+                        public boolean test(JavaClass input) {
+                            return input.getPackageName().contains("infrastructure.config");
+                        }
+                    },
+                    DescribedPredicate.alwaysTrue()
+            );
+
+    @ArchTest
+    static final ArchRule restAdaptersShouldNotDependOnOutAdapters = noClasses()
+            .that().resideInAPackage("..infrastructure.adapter.in.rest..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..infrastructure.adapter.out..");
 
     @ArchTest
     static final ArchRule coreMustNotDependOnOuterLayers = noClasses()
