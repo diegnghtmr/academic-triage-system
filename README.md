@@ -349,6 +349,20 @@ This flow has been validated manually in Docker using OpenRouter.
 ./gradlew test
 ```
 
+### Coverage reporting
+
+Generate an aggregate JaCoCo report for all modules:
+
+```bash
+./gradlew jacocoRootReport
+```
+
+Reports are available at:
+- **Aggregate (Root):** `build/reports/jacoco/root/html/index.html` (HTML) and `build/reports/jacoco/root/jacocoRootReport.xml` (XML)
+- **Per-module:** `{module}/build/reports/jacoco/test/html/index.html`
+
+> **Note:** This change adds reporting only — no coverage thresholds or CI enforcement are applied at this stage.
+
 ### Run module-specific tests
 
 ```bash
