@@ -16,7 +16,7 @@ import java.util.Optional;
 public class PriorityEngine {
 
     private static final Comparator<Priority> PRIORITY_COMPARATOR =
-            Comparator.comparingInt(PriorityEngine::priorityWeight).reversed();
+            Comparator.comparingInt(PriorityEngine::priorityWeight);
 
     /**
      * Evaluates the given active rules against a request and returns the highest priority
