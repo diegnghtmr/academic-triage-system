@@ -4,6 +4,7 @@ import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -348,6 +350,73 @@ class AcademicRequestTest {
                 new Email("user" + id + "@uniquindio.edu.co"),
                 role,
                 active
+        );
+    }
+
+    @Test
+    void shouldPreventDuplicateRuleApplication() {
+        var request = createAcademicRequest();
+        var ruleId = new BusinessRuleId(1L);
+        
+        request.applyRule(ruleId);
+        request.applyRule(ruleId);
+        
+        assertThat(request.getAppliedRuleIds()).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnImmutableCollections() {
+        var request = createAcademicRequest();
+        var ruleIds = request.getAppliedRuleIds();
+        var history = request.getHistory();
+        
+        assertThatThrownBy(() -> ruleIds.add(new BusinessRuleId(1L)))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> ((List<RequestHistory>)history).add(null))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void shouldVerifyStatePredicates() {
+        var request = createAcademicRequest();
+        
+        assertThat(request.isPendingClassification()).isTrue();
+        assertThat(request.isTerminal()).isFalse();
+
+        // Change to CLASSIFIED
+        request.classify(new RequestTypeId(1L), "Justification", new UserId(2L), LocalDateTime.now());
+        assertThat(request.isPendingClassification()).isFalse();
+        assertThat(request.isPendingPrioritization()).isTrue();
+        }
+
+
+    @Test
+    void shouldVerifyTransientEquality() {
+        var applicantId = new UserId(1L);
+        var originId = new OriginChannelId(1L);
+        var typeId = new RequestTypeId(1L);
+        var now = LocalDateTime.now();
+        
+        // Requests with same ID are equal
+        var r1 = new AcademicRequest(new RequestId(1L), "Valid description", applicantId, originId, typeId, null, false, now);
+        var r2 = new AcademicRequest(new RequestId(1L), "Other valid description", applicantId, originId, typeId, null, false, now);
+        var r3 = new AcademicRequest(new RequestId(2L), "Another valid description", applicantId, originId, typeId, null, false, now);
+        
+        assertThat(r1).isEqualTo(r2);
+        assertThat(r1).isNotEqualTo(r3);
+        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+    }
+
+    private AcademicRequest createAcademicRequest() {
+        return new AcademicRequest(
+                new RequestId(1L),
+                "Solicitud de prueba válida",
+                new UserId(1L),
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                LocalDate.now().plusDays(5),
+                false,
+                LocalDateTime.now()
         );
     }
 }
