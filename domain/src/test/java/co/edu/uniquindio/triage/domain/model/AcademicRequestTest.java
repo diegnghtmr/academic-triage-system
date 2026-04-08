@@ -419,4 +419,174 @@ class AcademicRequestTest {
                 LocalDateTime.now()
         );
     }
+
+    @Test
+    void isPendingAssignmentIsTrueWhenClassifiedPrioritizedAndUnassigned() {
+        var request = classifiedRequest();
+        request.prioritize(Priority.HIGH, "Motivo válido largo", new UserId(21L), LocalDateTime.now());
+        assertThat(request.isPendingAssignment()).isTrue();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenClassifiedButNotPrioritized() {
+        assertThat(classifiedRequest().isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenClassifiedButAlreadyHasResponsible() {
+        var base = LocalDateTime.of(2026, 3, 24, 8, 0);
+        var request = AcademicRequest.reconstitute(
+                new RequestId(7L),
+                "Descripción suficiente para la solicitud",
+                RequestStatus.CLASSIFIED,
+                Priority.MEDIUM,
+                "Justificación con más de cinco caracteres",
+                LocalDate.of(2026, 4, 10),
+                base,
+                false,
+                null,
+                null,
+                null,
+                null,
+                new UserId(10L),
+                new UserId(77L),
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                List.of(),
+                List.of());
+        assertThat(request.isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenStatusIsNotClassified() {
+        assertThat(newRequest().isPendingAssignment()).isFalse();
+        assertThat(inProgressRequest().isPendingAssignment()).isFalse();
+        assertThat(attendedRequest().isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void normalizeDescriptionMustRejectNullOrBlank() {
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("descripción");
+
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("   "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void normalizeDescriptionMustRejectLengthOutsideBounds() {
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("123456789"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("10 y 2000");
+
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("x".repeat(2001)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("10 y 2000");
+    }
+
+    @Test
+    void normalizeDescriptionTrimsWhitespaceWhenValid() {
+        assertThat(AcademicRequest.normalizeDescription("  1234567890  ")).isEqualTo("1234567890");
+    }
+
+    @Test
+    void prioritizeMustRejectNullPriority() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(null, "justificación válida aquí", new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("prioridad");
+    }
+
+    @Test
+    void prioritizeMustRejectJustificationLengthBounds() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, "1234", new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+
+        var tooLong = "j".repeat(1001);
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, tooLong, new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+    }
+
+    @Test
+    void attendMustRejectObservationLengthBounds() {
+        var request = inProgressRequest();
+        assertThatThrownBy(() -> request.attend("1234", new UserId(50L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("observación");
+
+        var tooLong = "o".repeat(2001);
+        assertThatThrownBy(() -> request.attend(tooLong, new UserId(50L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("observación");
+    }
+
+    @Test
+    void closeMustRejectObservationLengthBounds() {
+        var request = attendedRequest();
+        assertThatThrownBy(() -> request.close("1234", new UserId(52L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cierre");
+
+        var tooLong = "c".repeat(2001);
+        assertThatThrownBy(() -> request.close(tooLong, new UserId(52L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cierre");
+    }
+
+    @Test
+    void assignMustRejectPersistedIdMissingForActiveStaff() {
+        var request = prioritizedRequest();
+        var transientStaff = User.registerNew(
+                new Username("staff-transient"),
+                "Luis",
+                "Pérez",
+                new PasswordHash("hash-value"),
+                new Identification("1094999999"),
+                new Email("transient.staff@uniquindio.edu.co"),
+                Role.STAFF);
+        assertThat(transientStaff.getId()).isEmpty();
+
+        assertThatThrownBy(() -> request.assign(transientStaff, new UserId(99L), "obs válidas", LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("persistido");
+    }
+
+    @Test
+    void reconstituteMustTolerateNullAppliedRuleIdsAndHistory() {
+        var registration = LocalDateTime.of(2026, 3, 24, 8, 0);
+        var request = AcademicRequest.reconstitute(
+                new RequestId(99L),
+                "Descripción válida mínima diez",
+                RequestStatus.REGISTERED,
+                null,
+                null,
+                LocalDate.of(2026, 5, 1),
+                registration,
+                false,
+                null,
+                null,
+                null,
+                null,
+                new UserId(10L),
+                null,
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                null,
+                null);
+
+        assertThat(request.getAppliedRuleIds()).isEmpty();
+        assertThat(request.getHistory()).isEmpty();
+    }
+
+    @Test
+    void equalsSupportsIdentityNullAndForeignType() {
+        var request = newRequest();
+        assertThat(request.equals(request)).isTrue();
+        assertThat(request.equals(null)).isFalse();
+        assertThat(request.equals("not-a-request")).isFalse();
+    }
 }

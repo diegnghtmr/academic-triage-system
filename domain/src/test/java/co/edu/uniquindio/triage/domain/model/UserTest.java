@@ -10,6 +10,31 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UserTest {
 
+    private static User user(long id, String username, Role role) {
+        return User.reconstitute(
+                new UserId(id),
+                new Username(username),
+                "Nombre",
+                "Apellido",
+                new PasswordHash("h"),
+                new Identification(String.format("%010d", id)),
+                new Email(username + "@uniquindio.edu.co"),
+                role,
+                true);
+    }
+
+    private static User student(long id, String username) {
+        return user(id, username, Role.STUDENT);
+    }
+
+    private static User staff(long id, String username) {
+        return user(id, username, Role.STAFF);
+    }
+
+    private static User admin(long id, String username) {
+        return user(id, username, Role.ADMIN);
+    }
+
     @Test
     void anonymousRegistrationRoleMustDefaultToStudent() {
         var resolvedRole = User.resolveRegistrationRole(Role.ADMIN, null);
@@ -125,6 +150,83 @@ class UserTest {
         
         assertThat(user.getEmail()).isEqualTo(newEmail);
         assertThat(user.getRole()).isEqualTo(newRole);
+    }
+
+    @Test
+    void canCancelRequestAllowsStudentOwnerStaffAndAdmin() {
+        var applicantId = new UserId(100L);
+        var owner = student(100L, "owner");
+        var otherStudent = student(200L, "other");
+        var transientStudent = User.registerNew(
+                new Username("newstudent"),
+                "Nombre",
+                "Apellido",
+                new PasswordHash("h"),
+                new Identification("0000000300"),
+                new Email("newstudent@uniquindio.edu.co"),
+                Role.STUDENT);
+
+        assertThat(owner.canCancelRequest(applicantId)).isTrue();
+        assertThat(otherStudent.canCancelRequest(applicantId)).isFalse();
+        assertThat(transientStudent.canCancelRequest(applicantId)).isFalse();
+        assertThat(staff(300L, "staff1").canCancelRequest(applicantId)).isTrue();
+        assertThat(admin(400L, "admin1").canCancelRequest(applicantId)).isTrue();
+    }
+
+    @Test
+    void canClassifyRequestIsLimitedToStaffAndAdmin() {
+        assertThat(staff(1L, "staff-user").canClassifyRequest()).isTrue();
+        assertThat(admin(2L, "admin-user").canClassifyRequest()).isTrue();
+        assertThat(student(3L, "student-usr").canClassifyRequest()).isFalse();
+    }
+
+    @Test
+    void equalsHandlesNullForeignTypeAndTransientUsers() {
+        var persisted = createUser();
+        assertThat(persisted.equals(persisted)).isTrue();
+        assertThat(persisted.equals(null)).isFalse();
+        assertThat(persisted.equals(Integer.valueOf(1))).isFalse();
+
+        var a = User.registerNew(
+                new Username("user-a"),
+                "N",
+                "L",
+                new PasswordHash("h"),
+                new Identification("9"),
+                new Email("u1@test.com"),
+                Role.STUDENT);
+        var b = User.registerNew(
+                new Username("user-b"),
+                "N",
+                "L",
+                new PasswordHash("h"),
+                new Identification("9"),
+                new Email("u2@test.com"),
+                Role.STUDENT);
+        assertThat(a.equals(b)).isFalse();
+    }
+
+    @Test
+    void updateProfileMustValidateNameLengthAndBlanks() {
+        var user = createUser();
+        var id = new Identification("1234567890");
+
+        assertThatThrownBy(() -> user.updateProfile(" ", "Apellido", id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre");
+
+        assertThatThrownBy(() -> user.updateProfile("Nombre", "   ", id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("apellido");
+
+        var longName = "x".repeat(76);
+        assertThatThrownBy(() -> user.updateProfile(longName, "Apellido", id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre");
+
+        assertThatThrownBy(() -> user.updateProfile("Nombre", "y".repeat(76), id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("apellido");
     }
 
     private User createUser() {
