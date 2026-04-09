@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage;
 
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.support.MinimalLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
@@ -63,7 +64,7 @@ class ApplicationDefaultJwtSecretSmokeTest {
             HibernateJpaAutoConfiguration.class,
             FlywayAutoConfiguration.class
     })
-    @Import(SecurityConfiguration.class)
+    @Import({SecurityConfiguration.class, MinimalLoadUserAuthPortTestConfiguration.class})
     static class TestApplication {
     }
 }
