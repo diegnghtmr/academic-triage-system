@@ -20,7 +20,9 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.AuthRestMa
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -82,6 +84,20 @@ class AuthControllerTest {
 
     @MockitoBean
     private LoginUseCase loginUseCase;
+
+    @MockitoBean
+    private LoadUserAuthPort loadUserAuthPort;
+
+    @BeforeEach
+    void stubJwtRevalidationUserLookup() {
+        given(loadUserAuthPort.loadById(any(UserId.class))).willAnswer(invocation -> {
+            UserId id = invocation.getArgument(0);
+            if (Long.valueOf(1L).equals(id.value())) {
+                return Optional.of(sampleUser(Role.STAFF));
+            }
+            return Optional.empty();
+        });
+    }
 
     @Test
     void registerMustReturn201WithUserContract() throws Exception {

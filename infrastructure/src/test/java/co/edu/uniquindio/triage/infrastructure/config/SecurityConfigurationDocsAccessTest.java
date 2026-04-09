@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +62,7 @@ class SecurityConfigurationDocsDisabledByDefaultTest {
             HibernateJpaAutoConfiguration.class,
             FlywayAutoConfiguration.class
     })
-    @Import({SecurityConfiguration.class, HealthProbeController.class})
+    @Import({SecurityConfiguration.class, NoopLoadUserAuthPortTestConfiguration.class, HealthProbeController.class})
     static class TestApplication {
     }
 
@@ -108,7 +109,7 @@ class SecurityConfigurationDocsPublicAccessTest {
             HibernateJpaAutoConfiguration.class,
             FlywayAutoConfiguration.class
     })
-    @Import({SecurityConfiguration.class, SecurityConfigurationDocsDisabledByDefaultTest.HealthProbeController.class})
+    @Import({SecurityConfiguration.class, NoopLoadUserAuthPortTestConfiguration.class, SecurityConfigurationDocsDisabledByDefaultTest.HealthProbeController.class})
     static class TestApplication {
     }
 }
@@ -152,7 +153,7 @@ class SecurityConfigurationDocsRestrictedOptInTest {
             HibernateJpaAutoConfiguration.class,
             FlywayAutoConfiguration.class
     })
-    @Import({SecurityConfiguration.class, SecurityConfigurationDocsDisabledByDefaultTest.HealthProbeController.class})
+    @Import({SecurityConfiguration.class, NoopLoadUserAuthPortTestConfiguration.class, SecurityConfigurationDocsDisabledByDefaultTest.HealthProbeController.class})
     static class TestApplication {
     }
 }
