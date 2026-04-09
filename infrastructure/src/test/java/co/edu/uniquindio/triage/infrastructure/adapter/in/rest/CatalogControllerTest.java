@@ -20,6 +20,7 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRes
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -59,12 +60,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         CatalogController.class,
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         CatalogControllerTest.TestMappersConfiguration.class,
         CatalogControllerTest.TestApplication.class
 })
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         CatalogControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {
