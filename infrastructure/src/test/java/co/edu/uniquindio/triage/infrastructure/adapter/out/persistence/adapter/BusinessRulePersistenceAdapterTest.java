@@ -68,7 +68,7 @@ class BusinessRulePersistenceAdapterTest {
                 "Regla de Prueba",
                 "Descripción de prueba",
                 ConditionType.DEADLINE,
-                "{\"days\": 5}",
+                "5",
                 Priority.HIGH,
                 null
         );
@@ -82,9 +82,28 @@ class BusinessRulePersistenceAdapterTest {
         assertThat(loaded.get().getName()).isEqualTo("Regla de Prueba");
         assertThat(loaded.get().getDescription()).isEqualTo("Descripción de prueba");
         assertThat(loaded.get().getConditionType()).isEqualTo(ConditionType.DEADLINE);
-        assertThat(loaded.get().getConditionValue()).isEqualTo("{\"days\": 5}");
+        assertThat(loaded.get().getConditionValue()).isEqualTo("5");
         assertThat(loaded.get().getResultingPriority()).isEqualTo(Priority.HIGH);
         assertThat(loaded.get().isActive()).isTrue();
+    }
+
+    @Test
+    void inactiveMalformedDeadlineLoadsForAudit() {
+        var e = BusinessRuleJpaEntity.builder()
+                .name("Legacy bad")
+                .description("x")
+                .conditionType("DEADLINE")
+                .conditionValue("not-a-number")
+                .resultingPriority("LOW")
+                .active(false)
+                .build();
+        businessRuleJpaRepository.saveAndFlush(e);
+
+        var loaded = businessRulePersistenceAdapter.findById(new BusinessRuleId(e.getId()));
+
+        assertThat(loaded).isPresent();
+        assertThat(loaded.get().isActive()).isFalse();
+        assertThat(loaded.get().getConditionValue()).isEqualTo("not-a-number");
     }
 
     @Test
@@ -138,11 +157,16 @@ class BusinessRulePersistenceAdapterTest {
     }
 
     private BusinessRuleJpaEntity entity(String name, boolean active, ConditionType conditionType) {
+        String conditionValue = switch (conditionType) {
+            case DEADLINE, REQUEST_TYPE_AND_DEADLINE -> "5";
+            case IMPACT_LEVEL -> "HIGH";
+            case REQUEST_TYPE -> "1";
+        };
         return BusinessRuleJpaEntity.builder()
                 .name(name)
                 .description("Desc")
                 .conditionType(conditionType.name())
-                .conditionValue("{}")
+                .conditionValue(conditionValue)
                 .resultingPriority(Priority.MEDIUM.name())
                 .active(active)
                 .build();

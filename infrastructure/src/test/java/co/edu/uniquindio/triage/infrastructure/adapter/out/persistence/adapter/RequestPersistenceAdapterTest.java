@@ -15,13 +15,13 @@ import co.edu.uniquindio.triage.domain.model.PasswordHash;
 import co.edu.uniquindio.triage.domain.model.RequestType;
 import co.edu.uniquindio.triage.domain.model.User;
 import co.edu.uniquindio.triage.domain.model.Username;
+import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.UserJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.CatalogPersistenceMapper;
-import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.RequestPersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.UserPersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.OriginChannelJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.RequestJpaRepository;
@@ -44,9 +44,11 @@ import org.mapstruct.factory.Mappers;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest(properties = {
         "spring.flyway.enabled=true",
@@ -515,7 +517,7 @@ class RequestPersistenceAdapterTest {
                 originChannel,
                 "Fuera de rango inferior",
                 LocalDateTime.of(2026, 3, 9, 23, 59),
-                RequestStatus.REGISTERED,
+                RequestStatus.CLASSIFIED,
                 Priority.LOW
         );
         var firstMatching = persistRequest(
@@ -525,7 +527,7 @@ class RequestPersistenceAdapterTest {
                 originChannel,
                 "Primer match",
                 LocalDateTime.of(2026, 3, 10, 0, 0),
-                RequestStatus.REGISTERED,
+                RequestStatus.CLASSIFIED,
                 Priority.LOW
         );
         var ignoredByType = persistRequest(
@@ -535,7 +537,7 @@ class RequestPersistenceAdapterTest {
                 originChannel,
                 "Tipo distinto",
                 LocalDateTime.of(2026, 3, 11, 10, 0),
-                RequestStatus.REGISTERED,
+                RequestStatus.CLASSIFIED,
                 Priority.LOW
         );
         var secondMatching = persistRequest(
@@ -545,7 +547,7 @@ class RequestPersistenceAdapterTest {
                 originChannel,
                 "Segundo match",
                 LocalDateTime.of(2026, 3, 12, 23, 59),
-                RequestStatus.REGISTERED,
+                RequestStatus.CLASSIFIED,
                 Priority.LOW
         );
         var ignoredByUpperDate = persistRequest(
@@ -555,14 +557,14 @@ class RequestPersistenceAdapterTest {
                 originChannel,
                 "Fuera de rango superior",
                 LocalDateTime.of(2026, 3, 13, 0, 0),
-                RequestStatus.REGISTERED,
+                RequestStatus.CLASSIFIED,
                 Priority.LOW
         );
         entityManager.flush();
         entityManager.clear();
 
         var firstPage = requestPersistenceAdapter.search(new RequestSearchCriteria(
-                Optional.of(RequestStatus.REGISTERED),
+                Optional.of(RequestStatus.CLASSIFIED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
                 Optional.empty(),
@@ -574,7 +576,7 @@ class RequestPersistenceAdapterTest {
                 "registrationDateTime,asc"
         ));
         var secondPage = requestPersistenceAdapter.search(new RequestSearchCriteria(
-                Optional.of(RequestStatus.REGISTERED),
+                Optional.of(RequestStatus.CLASSIFIED),
                 Optional.of(matchingType.getId()),
                 Optional.of(Priority.LOW),
                 Optional.empty(),
@@ -663,6 +665,110 @@ class RequestPersistenceAdapterTest {
         assertThat(loadedRequestType.orElseThrow().getName()).isEqualTo("Certificado batch2");
         assertThat(loadedOriginChannel).isPresent();
         assertThat(loadedOriginChannel.orElseThrow().getName()).isEqualTo("Teléfono batch2");
+    }
+
+    @Test
+    void saveMustRejectUpdatingNonExistentRequest() {
+        var orphan = AcademicRequest.reconstitute(
+                new RequestId(9_999_888_777L),
+                "Descripción mínima de diez caracteres aquí",
+                RequestStatus.REGISTERED,
+                null,
+                null,
+                LocalDate.of(2026, 4, 20),
+                LocalDateTime.of(2026, 4, 10, 8, 0),
+                false,
+                null,
+                null,
+                null,
+                null,
+                new UserId(1L),
+                null,
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                List.of(),
+                List.of());
+
+        assertThatThrownBy(() -> requestPersistenceAdapter.save(orphan))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("inexistente");
+    }
+
+    @Test
+    void searchMustRejectSortExpressionWithoutCommaSeparatedFieldAndDirection() {
+        assertThatThrownBy(() -> requestPersistenceAdapter.search(new RequestSearchCriteria(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                0,
+                10,
+                "soloCampoSinDirección"
+        ))).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("sort");
+    }
+
+    @Test
+    void searchMustRejectUnsupportedSortField() {
+        assertThatThrownBy(() -> requestPersistenceAdapter.search(new RequestSearchCriteria(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                0,
+                10,
+                "campoInventado,asc"
+        ))).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("soportado");
+    }
+
+    @Test
+    void searchMustRejectInvalidSortDirection() {
+        assertThatThrownBy(() -> requestPersistenceAdapter.search(new RequestSearchCriteria(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                0,
+                10,
+                "registrationDateTime,diagonal"
+        ))).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Dirección");
+    }
+
+    @Test
+    void appliedRuleIdsMustRoundTripThroughPersistence() {
+        var requester = saveUser("student-rules-rt", Role.STUDENT);
+        var requestType = saveRequestType("Tipo rules RT");
+        var originChannel = saveOriginChannel("Canal rules RT");
+        var request = requestPersistenceAdapter.create(new NewAcademicRequest(
+                "Descripción suficiente para crear la solicitud académica",
+                requester.getId().orElseThrow(),
+                originChannel.getId(),
+                requestType.getId(),
+                LocalDate.of(2026, 5, 1),
+                false,
+                LocalDateTime.of(2026, 4, 2, 9, 0)
+        ));
+        request.applyRule(new BusinessRuleId(1L));
+        request.applyRule(new BusinessRuleId(2L));
+        requestPersistenceAdapter.save(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        var loaded = requestPersistenceAdapter.loadById(request.getId()).orElseThrow();
+        assertThat(loaded.getAppliedRuleIds())
+                .extracting(BusinessRuleId::value)
+                .containsExactlyInAnyOrder(1L, 2L);
     }
 
     private User saveUser(String username, Role role) {
