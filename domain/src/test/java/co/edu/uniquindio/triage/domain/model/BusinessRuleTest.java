@@ -108,21 +108,6 @@ class BusinessRuleTest {
     }
 
     @Test
-    @DisplayName("Should throw when IMPACT_LEVEL is outside allowed enum")
-    void impactLevelRejectsUnknown() {
-        assertThatThrownBy(() -> BusinessRule.createNew("R", "D", ConditionType.IMPACT_LEVEL, "MAX", Priority.LOW, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("IMPACT_LEVEL");
-    }
-
-    @Test
-    @DisplayName("Should canonize IMPACT_LEVEL to upper case")
-    void impactLevelCanonsToUpper() {
-        BusinessRule rule = BusinessRule.createNew("R", "D", ConditionType.IMPACT_LEVEL, "high", Priority.LOW, null);
-        assertThat(rule.getConditionValue()).isEqualTo("HIGH");
-    }
-
-    @Test
     @DisplayName("Should deactivate rule")
     void deactivateRule() {
         BusinessRule rule = BusinessRule.createNew("Name", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, null);
@@ -182,18 +167,6 @@ class BusinessRuleTest {
         assertThat(rule.matches(requestNear)).isTrue();
         assertThat(rule.matches(requestFar)).isFalse();
         assertThat(rule.matches(requestPast)).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should match impact level correctly")
-    void matchImpactLevel() {
-        BusinessRule rule = BusinessRule.createNew("Rule", "Desc", ConditionType.IMPACT_LEVEL, "HIGH", Priority.HIGH, null);
-
-        AcademicRequest requestHigh = createRequest(null, null, Priority.HIGH);
-        AcademicRequest requestLow = createRequest(null, null, Priority.LOW);
-
-        assertThat(rule.matches(requestHigh)).isTrue();
-        assertThat(rule.matches(requestLow)).isFalse();
     }
 
     @Test

@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,11 +43,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AiAssistantController.class)
+@ContextConfiguration(classes = {
+        AiAssistantController.class,
+        GlobalExceptionHandler.class,
+        SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
+        AiAssistantControllerTest.TestMappersConfiguration.class,
+        AiAssistantControllerTest.TestApplication.class
+})
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
         NoopLoadUserAuthPortTestConfiguration.class,
-        AiAssistantControllerTest.TestApplication.class,
         AiAssistantControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {

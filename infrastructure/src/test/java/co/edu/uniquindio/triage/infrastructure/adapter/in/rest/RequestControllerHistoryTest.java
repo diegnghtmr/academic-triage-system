@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -47,10 +48,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RequestController.class)
+@ContextConfiguration(classes = {
+        RequestController.class,
+        GlobalExceptionHandler.class,
+        SecurityConfiguration.class,
+        AuthenticatedActorMapper.class,
+        RequestControllerHistoryTest.TestApplication.class
+})
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
-        RequestControllerHistoryTest.TestApplication.class,
         AuthenticatedActorMapper.class
 })
 @TestPropertySource(properties = {

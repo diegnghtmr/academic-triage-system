@@ -77,7 +77,6 @@ public class BusinessRule {
         return switch (conditionType) {
             case REQUEST_TYPE -> canonRequestTypeValue(trimmed, requestTypeId);
             case DEADLINE -> canonDeadlineValue(trimmed, requestTypeId);
-            case IMPACT_LEVEL -> canonImpactLevelValue(trimmed, requestTypeId);
             case REQUEST_TYPE_AND_DEADLINE -> canonRequestTypeAndDeadlineValue(trimmed, requestTypeId);
         };
     }
@@ -110,17 +109,6 @@ public class BusinessRule {
             throw new IllegalArgumentException("REQUEST_TYPE_AND_DEADLINE requiere requestTypeId");
         }
         return Long.toString(parseNonNegativeDays(trimmed, "REQUEST_TYPE_AND_DEADLINE"));
-    }
-
-    private static String canonImpactLevelValue(String trimmed, RequestTypeId requestTypeId) {
-        if (requestTypeId != null) {
-            throw new IllegalArgumentException("IMPACT_LEVEL no admite requestTypeId");
-        }
-        var upper = trimmed.toUpperCase();
-        if (!upper.equals("HIGH") && !upper.equals("MEDIUM") && !upper.equals("LOW")) {
-            throw new IllegalArgumentException("IMPACT_LEVEL debe ser HIGH, MEDIUM o LOW");
-        }
-        return upper;
     }
 
     private static long parseNonNegativeDays(String trimmed, String contextLabel) {
@@ -215,7 +203,6 @@ public class BusinessRule {
         return switch (this.conditionType) {
             case REQUEST_TYPE -> matchesRequestType(request);
             case DEADLINE -> matchesDeadline(request);
-            case IMPACT_LEVEL -> matchesImpactLevel(request);
             case REQUEST_TYPE_AND_DEADLINE -> matchesRequestType(request) && matchesDeadline(request);
         };
     }
@@ -235,13 +222,6 @@ public class BusinessRule {
         } catch (NumberFormatException e) {
             return false;
         }
-    }
-
-    private boolean matchesImpactLevel(AcademicRequest request) {
-        if (request.getPriority() == null) {
-            return false;
-        }
-        return this.conditionValue.equals(request.getPriority().name());
     }
 
     @Override

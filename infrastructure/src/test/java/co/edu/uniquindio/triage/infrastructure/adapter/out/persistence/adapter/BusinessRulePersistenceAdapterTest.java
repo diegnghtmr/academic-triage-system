@@ -5,6 +5,7 @@ import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.model.BusinessRule;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.BusinessRuleJpaEntity;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestTypeJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.BusinessRulePersistenceMapperImpl;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.BusinessRuleJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,7 +111,7 @@ class BusinessRulePersistenceAdapterTest {
     void findAllByActiveAndConditionTypeShouldFilterCorrectly() {
         businessRuleJpaRepository.saveAndFlush(entity("Rule 1", true, ConditionType.DEADLINE));
         businessRuleJpaRepository.saveAndFlush(entity("Rule 2", false, ConditionType.DEADLINE));
-        businessRuleJpaRepository.saveAndFlush(entity("Rule 3", true, ConditionType.IMPACT_LEVEL));
+        businessRuleJpaRepository.saveAndFlush(entity("Rule 3", true, ConditionType.REQUEST_TYPE));
 
         List<BusinessRule> activeDeadlineRules = businessRulePersistenceAdapter.findAll(true, ConditionType.DEADLINE)
                 .stream().filter(r -> r.getName().startsWith("Rule ")).toList();
@@ -152,24 +153,27 @@ class BusinessRulePersistenceAdapterTest {
         businessRuleJpaRepository.saveAndFlush(entity("Duplicate Name", true, ConditionType.DEADLINE));
 
         assertThatThrownBy(() -> businessRuleJpaRepository.saveAndFlush(
-                entity("Duplicate Name", false, ConditionType.IMPACT_LEVEL)
+                entity("Duplicate Name", false, ConditionType.REQUEST_TYPE)
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private BusinessRuleJpaEntity entity(String name, boolean active, ConditionType conditionType) {
         String conditionValue = switch (conditionType) {
             case DEADLINE, REQUEST_TYPE_AND_DEADLINE -> "5";
-            case IMPACT_LEVEL -> "HIGH";
             case REQUEST_TYPE -> "1";
         };
-        return BusinessRuleJpaEntity.builder()
+        var builder = BusinessRuleJpaEntity.builder()
                 .name(name)
                 .description("Desc")
                 .conditionType(conditionType.name())
                 .conditionValue(conditionValue)
                 .resultingPriority(Priority.MEDIUM.name())
-                .active(active)
-                .build();
+                .active(active);
+        if (conditionType == ConditionType.REQUEST_TYPE || conditionType == ConditionType.REQUEST_TYPE_AND_DEADLINE) {
+            var rt = RequestTypeJpaEntity.builder().id(1L).build();
+            builder.requestType(rt);
+        }
+        return builder.build();
     }
 
     @SpringBootConfiguration

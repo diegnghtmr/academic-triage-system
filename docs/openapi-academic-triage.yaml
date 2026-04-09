@@ -942,7 +942,7 @@ paths:
             type: boolean
         - name: conditionType
           in: query
-          description: Filter by condition type
+          description: Filter by condition type. Unknown values are rejected with 400 Bad Request.
           schema:
             $ref: '#/components/schemas/ConditionTypeEnum'
       responses:
@@ -954,6 +954,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/BusinessRuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -963,8 +965,8 @@ paths:
       tags: [Business Rules]
       summary: Create a business rule
       description: |
-        Defines a new rule for automatic priority suggestion based on request type,
-        impact level, or deadline proximity.
+        Defines a new rule for automatic priority suggestion based on request type
+        and/or deadline proximity.
 
         **Allowed roles**: ADMIN.
       operationId: createBusinessRule
@@ -981,7 +983,6 @@ paths:
               conditionValue: "5"
               requestTypeId: 4
               resultingPriority: "HIGH"
-              active: true
       responses:
         '201':
           description: Business rule created
@@ -1028,7 +1029,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateBusinessRuleBody'
+              $ref: '#/components/schemas/UpdateBusinessRuleBody'
       responses:
         '200':
           description: Business rule updated
@@ -1460,7 +1461,7 @@ components:
 
     ConditionTypeEnum:
       type: string
-      enum: [REQUEST_TYPE, IMPACT_LEVEL, DEADLINE, REQUEST_TYPE_AND_DEADLINE]
+      enum: [REQUEST_TYPE, DEADLINE, REQUEST_TYPE_AND_DEADLINE]
       description: Types of conditions evaluated by business rules
 
     # ── Authentication ──
@@ -1877,7 +1878,7 @@ components:
           type: string
           description: |
             Scalar canon by condition type: REQUEST_TYPE = decimal id string of requestType;
-            DEADLINE = non-negative days; IMPACT_LEVEL = HIGH|MEDIUM|LOW;
+            DEADLINE = non-negative days;
             REQUEST_TYPE_AND_DEADLINE = non-negative days (requestType via requestTypeId).
           example: "4"
         resultingPriority:
@@ -1910,10 +1911,32 @@ components:
           type: integer
           format: int64
           nullable: true
-          description: Required for REQUEST_TYPE and REQUEST_TYPE_AND_DEADLINE; must be null for DEADLINE and IMPACT_LEVEL
+          description: Required for REQUEST_TYPE and REQUEST_TYPE_AND_DEADLINE; must be null for DEADLINE
+
+    UpdateBusinessRuleBody:
+      type: object
+      required: [name, conditionType, conditionValue, resultingPriority, active]
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+        conditionType:
+          $ref: '#/components/schemas/ConditionTypeEnum'
+        conditionValue:
+          type: string
+          description: Scalar condition value; semantics depend on conditionType (see BusinessRuleResponse).
+        resultingPriority:
+          $ref: '#/components/schemas/PriorityEnum'
+        requestTypeId:
+          type: integer
+          format: int64
+          nullable: true
+          description: Required for REQUEST_TYPE and REQUEST_TYPE_AND_DEADLINE; must be null for DEADLINE
         active:
           type: boolean
-          default: true
 
     PrioritySuggestionResponse:
       type: object

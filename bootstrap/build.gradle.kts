@@ -7,6 +7,8 @@ val testcontainersVersion: String by project
 
 dependencies {
     implementation(project(":infrastructure"))
+    testImplementation(project(":application"))
+    testImplementation(project(":domain"))
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
