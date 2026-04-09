@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.infrastructure.config;
 
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.BcryptPasswordAdapter;
@@ -46,8 +47,9 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtAuthenticationFilter jwtAuthenticationFilter(TokenProviderPort tokenProviderPort) {
-        return new JwtAuthenticationFilter(tokenProviderPort);
+    JwtAuthenticationFilter jwtAuthenticationFilter(TokenProviderPort tokenProviderPort,
+                                                   LoadUserAuthPort loadUserAuthPort) {
+        return new JwtAuthenticationFilter(tokenProviderPort, loadUserAuthPort);
     }
 
     @Bean
