@@ -9,9 +9,11 @@ import co.edu.uniquindio.triage.application.port.in.command.request.CloseRequest
 import co.edu.uniquindio.triage.application.port.in.command.request.CreateRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDetailQueryModel;
 import co.edu.uniquindio.triage.application.port.in.command.request.ListRequestsQueryModel;
+import co.edu.uniquindio.triage.application.port.in.command.request.PrioritySuggestionQuery;
 import co.edu.uniquindio.triage.application.port.in.command.request.PrioritizeRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.RejectRequestCommand;
 import co.edu.uniquindio.triage.application.port.in.common.Page;
+import co.edu.uniquindio.triage.application.port.in.request.PrioritySuggestionResult;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
@@ -34,7 +36,9 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.Class
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CloseRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.CreateRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.MatchedRuleSuggestionResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PagedRequestResponse;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritySuggestionResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.PrioritizeRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RejectRequestRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.RequestDetailResponse;
@@ -218,6 +222,20 @@ public interface RequestRestMapper {
                 page.currentPage(),
                 page.pageSize()
         );
+    }
+
+    default PrioritySuggestionQuery toPrioritySuggestionQuery(Long requestId) {
+        Objects.requireNonNull(requestId, "requestId no puede ser null");
+        return new PrioritySuggestionQuery(RequestId.of(requestId));
+    }
+
+    default PrioritySuggestionResponse toPrioritySuggestionResponse(PrioritySuggestionResult result) {
+        Objects.requireNonNull(result, "result no puede ser null");
+        var matched = result.matchedRules().stream()
+                .map(m -> new MatchedRuleSuggestionResponse(
+                        m.ruleId().value(), m.name(), m.resultingPriority()))
+                .toList();
+        return new PrioritySuggestionResponse(result.suggestedPriority(), matched);
     }
 
     default HistoryEntryResponse toResponse(RequestHistory entry) {

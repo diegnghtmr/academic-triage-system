@@ -7,6 +7,7 @@ import co.edu.uniquindio.triage.application.port.out.ai.AiAssistantPort;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.model.RequestType;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
@@ -25,8 +26,8 @@ public class SpringAiAssistantAdapter implements AiAssistantPort {
     @Value("classpath:/prompts/ai-generate-summary.st")
     private Resource generateSummaryPrompt;
 
-    public SpringAiAssistantAdapter(ChatClient.Builder chatClientBuilder) {
-        this.chatClient = chatClientBuilder
+    public SpringAiAssistantAdapter(ChatModel chatModel) {
+        this.chatClient = ChatClient.builder(chatModel)
             .defaultSystem("Eres un asistente inteligente para el sistema de triaje académico de la Universidad del Quindío.")
             .build();
     }

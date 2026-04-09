@@ -14,6 +14,7 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMa
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,12 +49,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ReportController.class,
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         ReportControllerTest.TestMappersConfiguration.class,
         ReportControllerTest.TestApplication.class
 })
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         ReportControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {

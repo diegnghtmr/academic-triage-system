@@ -22,7 +22,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/users")
-@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
     private final GetUsersQuery getUsersQuery;
@@ -44,6 +43,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> getUsers(
             @RequestParam(name = "role") Optional<Role> role,
             @RequestParam(name = "active") Optional<Boolean> active,
@@ -64,13 +64,17 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public UserResponse getUserById(@PathVariable("id") Long id) {
-        return getUserByIdQuery.execute(new UserId(id))
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'STUDENT')")
+    public UserResponse getUserById(@PathVariable("id") Long id,
+                                    Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        return getUserByIdQuery.execute(new UserId(id), actor)
                 .map(userRestMapper::toResponse)
                 .orElseThrow(() -> new EntityNotFoundException("User", "id", id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse updateUser(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateUserRequest request,

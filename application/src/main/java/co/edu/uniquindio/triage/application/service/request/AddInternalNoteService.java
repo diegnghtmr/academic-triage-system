@@ -2,6 +2,7 @@ package co.edu.uniquindio.triage.application.service.request;
 
 import co.edu.uniquindio.triage.application.port.in.command.request.AddInternalNoteCommand;
 import co.edu.uniquindio.triage.application.port.in.request.AddInternalNoteUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
 import co.edu.uniquindio.triage.domain.exception.RequestNotFoundException;
@@ -20,7 +21,7 @@ public class AddInternalNoteService implements AddInternalNoteUseCase {
     }
 
     @Override
-    public void addInternalNote(AddInternalNoteCommand command) {
+    public RequestHistoryDetail addInternalNote(AddInternalNoteCommand command) {
         Objects.requireNonNull(command, "El command no puede ser null");
 
         var request = loadRequestPort.loadById(command.requestId())
@@ -29,5 +30,9 @@ public class AddInternalNoteService implements AddInternalNoteUseCase {
         request.addInternalNote(command.note(), command.performedById(), LocalDateTime.now());
         
         saveRequestPort.save(request);
+
+        return loadRequestPort.loadDetailById(command.requestId())
+                .map(detail -> detail.history().getLast())
+                .orElseThrow(() -> new RequestNotFoundException(command.requestId()));
     }
 }

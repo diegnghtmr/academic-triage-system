@@ -94,6 +94,46 @@ class RegisterServiceTest {
                 .hasMessageContaining("username");
     }
 
+    @Test
+    void duplicateEmailMustBeRejected() {
+        var existing = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", "1094123456");
+        userPort.save(existing);
+
+        var command = new RegisterCommand(
+                new Username("otro_user"),
+                new Email("jperez@uniquindio.edu.co"),
+                "MyPassword123",
+                "Juan",
+                "Duplicado",
+                new Identification("99999"),
+                null
+        );
+
+        assertThatThrownBy(() -> registerService.register(command, Optional.empty()))
+                .isInstanceOf(DuplicateUserException.class)
+                .hasMessageContaining("email");
+    }
+
+    @Test
+    void duplicateIdentificationMustBeRejected() {
+        var existing = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", "1094123456");
+        userPort.save(existing);
+
+        var command = new RegisterCommand(
+                new Username("otro_user"),
+                new Email("otro@uniquindio.edu.co"),
+                "MyPassword123",
+                "Juan",
+                "Duplicado",
+                new Identification("1094123456"),
+                null
+        );
+
+        assertThatThrownBy(() -> registerService.register(command, Optional.empty()))
+                .isInstanceOf(DuplicateUserException.class)
+                .hasMessageContaining("identification");
+    }
+
     private User persistedUser(Long id, String username, String email, String identification) {
         return User.reconstitute(
                 new UserId(id),

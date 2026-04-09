@@ -1,10 +1,10 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
-import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.AddInternalNoteCommand;
 import co.edu.uniquindio.triage.application.port.in.command.request.GetRequestDetailQueryModel;
 import co.edu.uniquindio.triage.application.port.in.request.*;
-import co.edu.uniquindio.triage.domain.enums.RequestStatus;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
+import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.Role;
 import co.edu.uniquindio.triage.domain.model.*;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
@@ -13,6 +13,7 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AddInternalNoteRequest;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
@@ -27,16 +28,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,25 +43,21 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RequestController.class)
-@ContextConfiguration(classes = {
-        RequestController.class,
-        GlobalExceptionHandler.class,
-        SecurityConfiguration.class,
-        RequestHistoryControllerTest.TestApplication.class
-})
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        RequestControllerHistoryTest.TestApplication.class,
         AuthenticatedActorMapper.class
 })
 @TestPropertySource(properties = {
         "app.jwt.secret=12345678901234567890123456789012",
         "app.jwt.expiration-ms=86400000"
 })
-class RequestHistoryControllerTest {
+class RequestControllerHistoryTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -72,10 +66,13 @@ class RequestHistoryControllerTest {
     private AddInternalNoteUseCase addInternalNoteUseCase;
 
     @MockitoBean
-    private GetRequestHistoryQuery getRequestHistoryQuery;
+    private LoadUserAuthPort loadUserAuthPort;
 
     @MockitoBean
     private GetRequestDetailQuery getRequestDetailQuery;
+
+    @MockitoBean
+    private GetPrioritySuggestionQuery getPrioritySuggestionQuery;
 
     @MockitoBean private CreateRequestUseCase createRequestUseCase;
     @MockitoBean private ClassifyRequestUseCase classifyRequestUseCase;
@@ -89,9 +86,6 @@ class RequestHistoryControllerTest {
     
     @MockitoBean 
     private RequestRestMapper requestRestMapper;
-
-    @Autowired
-    private AuthenticatedActorMapper authenticatedActorMapper;
 
     @BeforeEach
     void setUp() {
@@ -107,18 +101,32 @@ class RequestHistoryControllerTest {
     }
 
     @Test
-    @DisplayName("GIVEN student is the owner WHEN gets history THEN returns 200")
+    @DisplayName("GIVEN student is the owner WHEN gets history THEN returns 200 with actor data")
     void studentOwnHistoryReturns200() throws Exception {
         RequestId requestId = new RequestId(1L);
         User student = sampleUser(1L, "student1", Role.STUDENT);
-        RequestDetail detail = createMockDetail(requestId, student);
+        
+        var historyEntry = new RequestHistory(null, HistoryAction.REGISTERED, "Initial registration", LocalDateTime.now(), requestId, student.getId().orElseThrow());
+        var historyDetail = new RequestHistoryDetail(historyEntry, student);
+        RequestDetail detail = createMockDetail(requestId, student, List.of(historyDetail));
+
+        var responseEntry = new HistoryEntryResponse(
+                50L, 
+                HistoryAction.REGISTERED, 
+                "Initial registration", 
+                historyEntry.getTimestamp(),
+                new co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.user.UserResponse(1L, "student1", "First", "Last", "ID-1", "student1@test.com", Role.STUDENT.name(), true)
+        );
 
         when(getRequestDetailQuery.execute(any(), any())).thenReturn(detail);
-        when(getRequestHistoryQuery.getRequestHistory(any())).thenReturn(Collections.emptyList());
+        when(requestRestMapper.toResponse(any(RequestHistoryDetail.class))).thenReturn(responseEntry);
 
         mockMvc.perform(get("/api/v1/requests/1/history")
                         .with(authentication(Role.STUDENT, "student1")))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].action").value("REGISTERED"))
+                .andExpect(jsonPath("$[0].performedBy.id").value(1))
+                .andExpect(jsonPath("$[0].performedBy.username").value("student1"));
     }
 
     @Test
@@ -126,7 +134,7 @@ class RequestHistoryControllerTest {
     void studentOtherHistoryReturns403() throws Exception {
         RequestId requestId = new RequestId(1L);
         User owner = sampleUser(1L, "student1", Role.STUDENT);
-        RequestDetail detail = createMockDetail(requestId, owner);
+        RequestDetail detail = createMockDetail(requestId, owner, List.of());
 
         when(getRequestDetailQuery.execute(any(), any())).thenReturn(detail);
 
@@ -136,14 +144,34 @@ class RequestHistoryControllerTest {
     }
 
     @Test
-    @DisplayName("GIVEN staff member WHEN posts internal note THEN returns 201")
+    @DisplayName("GIVEN staff member WHEN posts internal note THEN returns 201 with body and actor")
     void staffPostNoteReturns201() throws Exception {
+        var userId = new UserId(10L);
+        var performer = sampleUser(10L, "staff1", Role.STAFF);
+        var entry = new RequestHistoryDetail(
+                new RequestHistory(null, HistoryAction.INTERNAL_NOTE, "This is an internal note", LocalDateTime.now(), new RequestId(1L), userId),
+                performer
+        );
+        
+        var performerResponse = new co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.user.UserResponse(
+                10L, "staff1", "First", "Last", "ID-10", "staff1@test.com", Role.STAFF.name(), true
+        );
+        var responseBody = new HistoryEntryResponse(100L, HistoryAction.INTERNAL_NOTE, "This is an internal note", LocalDateTime.now(), performerResponse);
+
+        when(addInternalNoteUseCase.addInternalNote(any())).thenReturn(entry);
+        when(requestRestMapper.toResponse(any(RequestHistoryDetail.class))).thenReturn(responseBody);
+
         mockMvc.perform(post("/api/v1/requests/1/history")
                         .with(authentication(Role.STAFF, "staff1"))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"observations\": \"This is an internal note\"}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(100))
+                .andExpect(jsonPath("$.action").value("INTERNAL_NOTE"))
+                .andExpect(jsonPath("$.observations").value("This is an internal note"))
+                .andExpect(jsonPath("$.performedBy.id").value(10))
+                .andExpect(jsonPath("$.performedBy.username").value("staff1"));
     }
 
     @Test
@@ -151,10 +179,9 @@ class RequestHistoryControllerTest {
     void adminGetsAnyHistoryReturns200() throws Exception {
         RequestId requestId = new RequestId(1L);
         User owner = sampleUser(1L, "student1", Role.STUDENT);
-        RequestDetail detail = createMockDetail(requestId, owner);
+        RequestDetail detail = createMockDetail(requestId, owner, List.of());
 
         when(getRequestDetailQuery.execute(any(), any())).thenReturn(detail);
-        when(getRequestHistoryQuery.getRequestHistory(any())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/requests/1/history")
                         .with(authentication(Role.ADMIN, "admin1")))
@@ -175,7 +202,7 @@ class RequestHistoryControllerTest {
         );
     }
 
-    private RequestDetail createMockDetail(RequestId id, User requester) {
+    private RequestDetail createMockDetail(RequestId id, User requester, List<RequestHistoryDetail> history) {
         AcademicRequest request = new AcademicRequest(
                 id,
                 "Description test length long enough",
@@ -189,7 +216,7 @@ class RequestHistoryControllerTest {
         RequestType type = new RequestType(new RequestTypeId(1L), "Type", "Desc", true);
         OriginChannel channel = new OriginChannel(new OriginChannelId(1L), "Channel", true);
         
-        return new RequestDetail(request, type, channel, requester, Optional.empty(), List.of());
+        return new RequestDetail(request, type, channel, requester, Optional.empty(), history);
     }
 
     private RequestPostProcessor authentication(Role role, String username) {

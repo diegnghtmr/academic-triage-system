@@ -4,6 +4,7 @@ import co.edu.uniquindio.triage.domain.enums.HistoryAction;
 import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.enums.RequestStatus;
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -292,6 +294,44 @@ class AcademicRequestTest {
                 .hasMessageContaining("entre 1 y 2000");
     }
 
+    @Test
+    void prioritizeMustRejectStatusOutsideClassified() {
+        var request = newRequest(); // Está en REGISTERED
+        var prioritizerId = new UserId(21L);
+
+        assertThatThrownBy(() -> request.prioritize(Priority.HIGH, "Justificación válida", prioritizerId, LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CLASSIFIED");
+    }
+
+    @Test
+    void addInternalNoteMustRejectInTerminalStates() {
+        var actorId = new UserId(70L);
+        var timestamp = LocalDateTime.now();
+        var note = "Nota interna";
+
+        // Caso CANCELLED
+        var cancelled = newRequest();
+        cancelled.cancel("Razón válida", actorId, timestamp);
+        assertThatThrownBy(() -> cancelled.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+
+        // Caso REJECTED
+        var rejected = newRequest();
+        rejected.reject("Razón válida", actorId, timestamp);
+        assertThatThrownBy(() -> rejected.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+
+        // Caso CLOSED
+        var closed = attendedRequest();
+        closed.close("Observación válida", actorId, timestamp);
+        assertThatThrownBy(() -> closed.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+    }
+
     private AcademicRequest newRequest() {
         return new AcademicRequest(
                 new RequestId(1L),
@@ -349,5 +389,281 @@ class AcademicRequestTest {
                 role,
                 active
         );
+    }
+
+    @Test
+    void shouldPreventDuplicateRuleApplication() {
+        var request = createAcademicRequest();
+        var ruleId = new BusinessRuleId(1L);
+        
+        request.applyRule(ruleId);
+        request.applyRule(ruleId);
+        
+        assertThat(request.getAppliedRuleIds()).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnImmutableCollections() {
+        var request = createAcademicRequest();
+        var ruleIds = request.getAppliedRuleIds();
+        var history = request.getHistory();
+        
+        assertThatThrownBy(() -> ruleIds.add(new BusinessRuleId(1L)))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> ((List<RequestHistory>)history).add(null))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void shouldVerifyStatePredicates() {
+        var request = createAcademicRequest();
+        
+        assertThat(request.isPendingClassification()).isTrue();
+        assertThat(request.isTerminal()).isFalse();
+
+        // Change to CLASSIFIED
+        request.classify(new RequestTypeId(1L), "Justification", new UserId(2L), LocalDateTime.now());
+        assertThat(request.isPendingClassification()).isFalse();
+        assertThat(request.isPendingPrioritization()).isTrue();
+    }
+
+    @Test
+    void isCancellableReflectsValidCancelTransitions() {
+        assertThat(newRequest().isCancellable()).isTrue();
+        assertThat(classifiedRequest().isCancellable()).isTrue();
+        assertThat(inProgressRequest().isCancellable()).isFalse();
+        assertThat(attendedRequest().isCancellable()).isFalse();
+
+        var closed = attendedRequest();
+        closed.close("Observación de cierre válida aquíextendida", new UserId(1L), LocalDateTime.now());
+        assertThat(closed.isCancellable()).isFalse();
+    }
+
+    @Test
+    void isUnattendedOnlyForInProgressRequests() {
+        assertThat(newRequest().isUnattended()).isFalse();
+        assertThat(classifiedRequest().isUnattended()).isFalse();
+        assertThat(inProgressRequest().isUnattended()).isTrue();
+        assertThat(attendedRequest().isUnattended()).isFalse();
+    }
+
+    @Test
+    void isPendingPrioritizationDependsOnlyOnClassifiedStatus() {
+        assertThat(newRequest().isPendingPrioritization()).isFalse();
+        assertThat(classifiedRequest().isPendingPrioritization()).isTrue();
+        assertThat(prioritizedRequest().isPendingPrioritization()).isTrue();
+        assertThat(inProgressRequest().isPendingPrioritization()).isFalse();
+    }
+
+    @Test
+    void prioritizeMustRejectNullOrBlankJustification() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, null, new UserId(21L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, "   ", new UserId(21L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+    }
+
+
+    @Test
+    void shouldVerifyTransientEquality() {
+        var applicantId = new UserId(1L);
+        var originId = new OriginChannelId(1L);
+        var typeId = new RequestTypeId(1L);
+        var now = LocalDateTime.now();
+        
+        // Requests with same ID are equal
+        var r1 = new AcademicRequest(new RequestId(1L), "Valid description", applicantId, originId, typeId, null, false, now);
+        var r2 = new AcademicRequest(new RequestId(1L), "Other valid description", applicantId, originId, typeId, null, false, now);
+        var r3 = new AcademicRequest(new RequestId(2L), "Another valid description", applicantId, originId, typeId, null, false, now);
+        
+        assertThat(r1).isEqualTo(r2);
+        assertThat(r1).isNotEqualTo(r3);
+        assertThat(r1.hashCode()).isEqualTo(r2.hashCode());
+    }
+
+    private AcademicRequest createAcademicRequest() {
+        return new AcademicRequest(
+                new RequestId(1L),
+                "Solicitud de prueba válida",
+                new UserId(1L),
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                LocalDate.now().plusDays(5),
+                false,
+                LocalDateTime.now()
+        );
+    }
+
+    @Test
+    void isPendingAssignmentIsTrueWhenClassifiedPrioritizedAndUnassigned() {
+        var request = classifiedRequest();
+        request.prioritize(Priority.HIGH, "Motivo válido largo", new UserId(21L), LocalDateTime.now());
+        assertThat(request.isPendingAssignment()).isTrue();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenClassifiedButNotPrioritized() {
+        assertThat(classifiedRequest().isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenClassifiedButAlreadyHasResponsible() {
+        var base = LocalDateTime.of(2026, 3, 24, 8, 0);
+        var request = AcademicRequest.reconstitute(
+                new RequestId(7L),
+                "Descripción suficiente para la solicitud",
+                RequestStatus.CLASSIFIED,
+                Priority.MEDIUM,
+                "Justificación con más de cinco caracteres",
+                LocalDate.of(2026, 4, 10),
+                base,
+                false,
+                null,
+                null,
+                null,
+                null,
+                new UserId(10L),
+                new UserId(77L),
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                List.of(),
+                List.of());
+        assertThat(request.isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void isPendingAssignmentIsFalseWhenStatusIsNotClassified() {
+        assertThat(newRequest().isPendingAssignment()).isFalse();
+        assertThat(inProgressRequest().isPendingAssignment()).isFalse();
+        assertThat(attendedRequest().isPendingAssignment()).isFalse();
+    }
+
+    @Test
+    void normalizeDescriptionMustRejectNullOrBlank() {
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("descripción");
+
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("   "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void normalizeDescriptionMustRejectLengthOutsideBounds() {
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("123456789"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("10 y 2000");
+
+        assertThatThrownBy(() -> AcademicRequest.normalizeDescription("x".repeat(2001)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("10 y 2000");
+    }
+
+    @Test
+    void normalizeDescriptionTrimsWhitespaceWhenValid() {
+        assertThat(AcademicRequest.normalizeDescription("  1234567890  ")).isEqualTo("1234567890");
+    }
+
+    @Test
+    void prioritizeMustRejectNullPriority() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(null, "justificación válida aquí", new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("prioridad");
+    }
+
+    @Test
+    void prioritizeMustRejectJustificationLengthBounds() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, "1234", new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+
+        var tooLong = "j".repeat(1001);
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, tooLong, new UserId(1L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+    }
+
+    @Test
+    void attendMustRejectObservationLengthBounds() {
+        var request = inProgressRequest();
+        assertThatThrownBy(() -> request.attend("1234", new UserId(50L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("observación");
+
+        var tooLong = "o".repeat(2001);
+        assertThatThrownBy(() -> request.attend(tooLong, new UserId(50L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("observación");
+    }
+
+    @Test
+    void closeMustRejectObservationLengthBounds() {
+        var request = attendedRequest();
+        assertThatThrownBy(() -> request.close("1234", new UserId(52L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cierre");
+
+        var tooLong = "c".repeat(2001);
+        assertThatThrownBy(() -> request.close(tooLong, new UserId(52L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cierre");
+    }
+
+    @Test
+    void assignMustRejectPersistedIdMissingForActiveStaff() {
+        var request = prioritizedRequest();
+        var transientStaff = User.registerNew(
+                new Username("staff-transient"),
+                "Luis",
+                "Pérez",
+                new PasswordHash("hash-value"),
+                new Identification("1094999999"),
+                new Email("transient.staff@uniquindio.edu.co"),
+                Role.STAFF);
+        assertThat(transientStaff.getId()).isEmpty();
+
+        assertThatThrownBy(() -> request.assign(transientStaff, new UserId(99L), "obs válidas", LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("persistido");
+    }
+
+    @Test
+    void reconstituteMustTolerateNullAppliedRuleIdsAndHistory() {
+        var registration = LocalDateTime.of(2026, 3, 24, 8, 0);
+        var request = AcademicRequest.reconstitute(
+                new RequestId(99L),
+                "Descripción válida mínima diez",
+                RequestStatus.REGISTERED,
+                null,
+                null,
+                LocalDate.of(2026, 5, 1),
+                registration,
+                false,
+                null,
+                null,
+                null,
+                null,
+                new UserId(10L),
+                null,
+                new OriginChannelId(1L),
+                new RequestTypeId(1L),
+                null,
+                null);
+
+        assertThat(request.getAppliedRuleIds()).isEmpty();
+        assertThat(request.getHistory()).isEmpty();
+    }
+
+    @Test
+    void equalsSupportsIdentityNullAndForeignType() {
+        var request = newRequest();
+        assertThat(request.equals(request)).isTrue();
+        assertThat(request.equals(null)).isFalse();
+        assertThat(request.equals("not-a-request")).isFalse();
     }
 }

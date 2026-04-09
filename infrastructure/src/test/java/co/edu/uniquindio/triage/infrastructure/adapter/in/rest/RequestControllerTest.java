@@ -1,6 +1,5 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
-import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AddInternalNoteUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
@@ -8,8 +7,11 @@ import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.GetPrioritySuggestionQuery;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
-import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQuery;
+import co.edu.uniquindio.triage.application.port.in.request.MatchedBusinessRuleSummary;
+import co.edu.uniquindio.triage.application.port.in.request.PrioritySuggestionResult;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
@@ -35,6 +37,7 @@ import co.edu.uniquindio.triage.domain.model.RequestType;
 import co.edu.uniquindio.triage.domain.model.User;
 import co.edu.uniquindio.triage.domain.model.Username;
 import co.edu.uniquindio.triage.domain.model.id.OriginChannelId;
+import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestHistoryId;
 import co.edu.uniquindio.triage.domain.model.id.RequestId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
@@ -58,7 +61,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -79,16 +81,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RequestController.class)
-@ContextConfiguration(classes = {
-        RequestController.class,
-        GlobalExceptionHandler.class,
-        SecurityConfiguration.class,
-        RequestControllerTest.TestMappersConfiguration.class,
-        RequestControllerTest.TestApplication.class
-})
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        RequestControllerTest.TestApplication.class,
         RequestControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {
@@ -131,7 +127,10 @@ class RequestControllerTest {
     private GetRequestDetailQuery getRequestDetailQuery;
 
     @MockitoBean
-    private GetRequestHistoryQuery getRequestHistoryQuery;
+    private GetPrioritySuggestionQuery getPrioritySuggestionQuery;
+
+    @MockitoBean
+    private LoadUserAuthPort loadUserAuthPort;
 
     @MockitoBean
     private AddInternalNoteUseCase addInternalNoteUseCase;
@@ -995,6 +994,31 @@ class RequestControllerTest {
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PROBLEM_JSON_VALUE)))
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void prioritySuggestionMustReturn200WithMatches() throws Exception {
+        given(getPrioritySuggestionQuery.execute(any(), any())).willReturn(
+                new PrioritySuggestionResult(Priority.HIGH, List.of(
+                        new MatchedBusinessRuleSummary(new BusinessRuleId(1L), "Regla cupos", Priority.HIGH))));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/requests/{requestId}/priority-suggestion", 42)
+                        .with(staffAuthentication()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suggestedPriority").value("HIGH"))
+                .andExpect(jsonPath("$.matchedRules[0].ruleId").value(1))
+                .andExpect(jsonPath("$.matchedRules[0].name").value("Regla cupos"))
+                .andExpect(jsonPath("$.matchedRules[0].resultingPriority").value("HIGH"));
+    }
+
+    @Test
+    void prioritySuggestionMustReturn403WhenStudentCannotAccess() throws Exception {
+        given(getPrioritySuggestionQuery.execute(any(), any()))
+                .willThrow(new UnauthorizedOperationException(Role.STUDENT, "sugerencia de prioridad"));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/requests/{requestId}/priority-suggestion", 42)
+                        .with(studentAuthentication()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -8,6 +8,7 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.OriginChannelJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestTypeJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.CatalogPersistenceMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.BusinessRuleJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.OriginChannelJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.RequestTypeJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,11 +59,15 @@ class CatalogPersistenceAdapterTest {
     @Autowired
     private OriginChannelJpaRepository originChannelJpaRepository;
 
+    @Autowired
+    private BusinessRuleJpaRepository businessRuleJpaRepository;
+
     private CatalogPersistenceAdapter catalogPersistenceAdapter;
 
     @BeforeEach
     void setUp() {
         originChannelJpaRepository.deleteAll();
+        businessRuleJpaRepository.deleteAll();
         requestTypeJpaRepository.deleteAll();
         CatalogPersistenceMapper mapper = Mappers.getMapper(CatalogPersistenceMapper.class);
         catalogPersistenceAdapter = new CatalogPersistenceAdapter(requestTypeJpaRepository, originChannelJpaRepository, mapper);

@@ -4,14 +4,12 @@ import co.edu.uniquindio.triage.application.port.out.ai.AiAssistantPort;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.ai.NoOpAiAssistantAdapter;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.ai.SpringAiAssistantAdapter;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class AiConfigurationTest {
 
@@ -36,14 +34,11 @@ class AiConfigurationTest {
     }
 
     @Test
-    void whenProviderIsOpenAiAndBuilderExists_thenSpringAiAdapterIsWired() {
-        ChatClient.Builder builder = mock(ChatClient.Builder.class);
-        ChatClient chatClient = mock(ChatClient.class);
-        when(builder.defaultSystem(anyString())).thenReturn(builder);
-        when(builder.build()).thenReturn(chatClient);
+    void whenProviderIsOpenAiAndChatModelExists_thenSpringAiAdapterIsWired() {
+        ChatModel chatModel = mock(ChatModel.class);
 
         contextRunner.withPropertyValues("app.ai.provider=openai")
-            .withBean(ChatClient.Builder.class, () -> builder)
+            .withBean(ChatModel.class, () -> chatModel)
             .run(context -> {
                 assertThat(context).hasSingleBean(AiAssistantPort.class);
                 assertThat(context.getBean(AiAssistantPort.class)).isInstanceOf(SpringAiAssistantAdapter.class);
@@ -51,7 +46,7 @@ class AiConfigurationTest {
     }
 
     @Test
-    void whenProviderIsOpenAiButBuilderIsMissing_thenNoOpAdapterIsWiredAsFallback() {
+    void whenProviderIsOpenAiButChatModelIsMissing_thenNoOpAdapterIsWiredAsFallback() {
         contextRunner.withPropertyValues("app.ai.provider=openai")
             .run(context -> {
                 assertThat(context).hasSingleBean(AiAssistantPort.class);

@@ -32,7 +32,7 @@ info:
   version: 1.0.0
   contact:
     name: Development Team
-    email: diegoa.floresq@uqvirtual.edu.co, juanp.morar@uqvirtual.edu.co, brahians.mosquerav@uqvirtual.edu.co
+    email: diegoa.floresq@uqvirtual.edu.co
   license:
     name: MIT
 
@@ -229,6 +229,33 @@ paths:
                 $ref: '#/components/schemas/RequestDetailResponse'
         '400':
           $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+
+  /requests/{requestId}/priority-suggestion:
+    get:
+      tags: [Requests]
+      summary: Priority suggestion (read-only)
+      description: |
+        Evaluates active business rules against the current request snapshot and returns
+        a suggested priority plus minimal metadata for rules that matched. Does not
+        change the request; manual prioritization remains `PATCH /requests/{requestId}/prioritize`.
+
+        **STUDENT**: only for their own requests.
+      operationId: getPrioritySuggestion
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Suggested priority and matching rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrioritySuggestionResponse'
         '401':
           $ref: '#/components/responses/ProblemUnauthorized'
         '403':
@@ -951,7 +978,8 @@ paths:
               name: "Urgent seat requests"
               description: "Seat requests with a deadline under 5 days receive HIGH priority."
               conditionType: "REQUEST_TYPE_AND_DEADLINE"
-              conditionValue: "{\"requestTypeId\": 4, \"maxDaysUntilDeadline\": 5}"
+              conditionValue: "5"
+              requestTypeId: 4
               resultingPriority: "HIGH"
               active: true
       responses:
@@ -1847,8 +1875,11 @@ components:
           $ref: '#/components/schemas/ConditionTypeEnum'
         conditionValue:
           type: string
-          description: Condition parameters in JSON format
-          example: "{\"requestTypeId\": 4, \"maxDaysUntilDeadline\": 5}"
+          description: |
+            Scalar canon by condition type: REQUEST_TYPE = decimal id string of requestType;
+            DEADLINE = non-negative days; IMPACT_LEVEL = HIGH|MEDIUM|LOW;
+            REQUEST_TYPE_AND_DEADLINE = non-negative days (requestType via requestTypeId).
+          example: "4"
         resultingPriority:
           $ref: '#/components/schemas/PriorityEnum'
         requestType:
@@ -1872,17 +1903,38 @@ components:
           $ref: '#/components/schemas/ConditionTypeEnum'
         conditionValue:
           type: string
-          description: Condition parameters in JSON format
+          description: Scalar condition value; semantics depend on conditionType (see BusinessRuleResponse).
         resultingPriority:
           $ref: '#/components/schemas/PriorityEnum'
         requestTypeId:
           type: integer
           format: int64
           nullable: true
-          description: Optional ID of the request type this rule applies to
+          description: Required for REQUEST_TYPE and REQUEST_TYPE_AND_DEADLINE; must be null for DEADLINE and IMPACT_LEVEL
         active:
           type: boolean
           default: true
+
+    PrioritySuggestionResponse:
+      type: object
+      properties:
+        suggestedPriority:
+          $ref: '#/components/schemas/PriorityEnum'
+        matchedRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchedRuleSuggestionItem'
+
+    MatchedRuleSuggestionItem:
+      type: object
+      properties:
+        ruleId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        resultingPriority:
+          $ref: '#/components/schemas/PriorityEnum'
 
     # ── AI ──
 

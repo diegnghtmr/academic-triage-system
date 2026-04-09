@@ -10,7 +10,7 @@ COPY application application
 COPY infrastructure infrastructure
 COPY bootstrap bootstrap
 
-RUN chmod +x gradlew && ./gradlew bootstrap:bootJar --no-daemon
+RUN gradle bootstrap:bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app

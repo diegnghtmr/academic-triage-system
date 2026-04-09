@@ -4,12 +4,10 @@ import co.edu.uniquindio.triage.application.port.in.businessrule.*;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.DeactivateBusinessRuleCommand;
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
-import co.edu.uniquindio.triage.domain.model.BusinessRule;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.BusinessRuleResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.CreateBusinessRuleRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.UpdateBusinessRuleRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.BusinessRuleRestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,7 +24,7 @@ import java.util.Optional;
 @RequestMapping("/api/v1/business-rules")
 @RequiredArgsConstructor
 @Tag(name = "Business Rules", description = "Endpoints para la administración de reglas de negocio")
-public class BusinessRuleController {
+class BusinessRuleController {
 
     private final ListBusinessRulesQueryUseCase listBusinessRulesQueryUseCase;
     private final GetBusinessRuleQueryUseCase getBusinessRuleQueryUseCase;
@@ -42,7 +40,7 @@ public class BusinessRuleController {
             @RequestParam(name = "active") Optional<Boolean> active,
             @RequestParam(name = "conditionType") Optional<ConditionType> conditionType
     ) {
-        List<BusinessRule> result = listBusinessRulesQueryUseCase.list(mapper.toQuery(active, conditionType));
+        var result = listBusinessRulesQueryUseCase.list(mapper.toQuery(active, conditionType));
         return ResponseEntity.ok(mapper.toResponses(result));
     }
 
@@ -50,7 +48,7 @@ public class BusinessRuleController {
     @Operation(summary = "Obtener regla por ID", description = "Retorna el detalle de una regla de negocio específica")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<BusinessRuleResponse> getById(@PathVariable("ruleId") Long ruleId) {
-        BusinessRule result = getBusinessRuleQueryUseCase.getById(new BusinessRuleId(ruleId))
+        var result = getBusinessRuleQueryUseCase.getById(new BusinessRuleId(ruleId))
                 .orElseThrow(() -> new EntityNotFoundException("Regla de negocio", "id", ruleId));
         return ResponseEntity.ok(mapper.toResponse(result));
     }
@@ -59,7 +57,7 @@ public class BusinessRuleController {
     @Operation(summary = "Crear regla de negocio", description = "Crea una nueva regla de negocio (Solo ADMIN)")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BusinessRuleResponse> create(@Valid @RequestBody CreateBusinessRuleRequest request) {
-        BusinessRule result = createBusinessRuleUseCase.create(mapper.toCommand(request));
+        var result = createBusinessRuleUseCase.create(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(result));
     }
 
@@ -70,7 +68,7 @@ public class BusinessRuleController {
             @PathVariable("ruleId") Long ruleId,
             @Valid @RequestBody UpdateBusinessRuleRequest request
     ) {
-        BusinessRule result = updateBusinessRuleUseCase.update(mapper.toCommand(ruleId, request));
+        var result = updateBusinessRuleUseCase.update(mapper.toCommand(ruleId, request));
         return ResponseEntity.ok(mapper.toResponse(result));
     }
 

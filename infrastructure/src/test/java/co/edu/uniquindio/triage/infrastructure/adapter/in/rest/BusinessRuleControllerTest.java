@@ -9,10 +9,13 @@ import co.edu.uniquindio.triage.domain.exception.DuplicateCatalogEntryException;
 import co.edu.uniquindio.triage.domain.model.BusinessRule;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.BusinessRuleRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.BusinessRuleRestMapper;
+import co.edu.uniquindio.triage.domain.model.RequestType;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -35,6 +38,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -44,12 +48,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         BusinessRuleController.class,
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         BusinessRuleControllerTest.TestMappersConfiguration.class,
         BusinessRuleControllerTest.TestApplication.class
 })
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
         BusinessRuleControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {
@@ -78,8 +84,8 @@ class BusinessRuleControllerTest {
 
     @Test
     void listRulesMustReturn200ForAdmin() throws Exception {
-        BusinessRule rule = sampleRule(1L, "Rule 1");
-        given(listBusinessRulesQueryUseCase.list(any())).willReturn(List.of(rule));
+        var rule = sampleRule(1L, "Rule 1");
+        given(listBusinessRulesQueryUseCase.list(any())).willReturn(List.of(new BusinessRuleView(rule, null)));
 
         mockMvc.perform(get("/api/v1/business-rules")
                         .with(authentication(Role.ADMIN))
@@ -88,6 +94,22 @@ class BusinessRuleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].name").value("Rule 1"));
+    }
+
+    @Test
+    void listRulesMustExposeHydratedRequestTypeWhenPresent() throws Exception {
+        var rule = sampleRule(1L, "Rule 1");
+        var rt = mock(RequestType.class);
+        given(rt.getId()).willReturn(new RequestTypeId(1L));
+        given(rt.getName()).willReturn("Certificado");
+        given(rt.getDescription()).willReturn("D");
+        given(rt.isActive()).willReturn(true);
+        given(listBusinessRulesQueryUseCase.list(any())).willReturn(List.of(new BusinessRuleView(rule, rt)));
+
+        mockMvc.perform(get("/api/v1/business-rules").with(authentication(Role.ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].requestType.id").value(1))
+                .andExpect(jsonPath("$[0].requestType.name").value("Certificado"));
     }
 
     @Test
@@ -107,13 +129,61 @@ class BusinessRuleControllerTest {
     @Test
     void getByIdMustReturn200WhenFound() throws Exception {
         BusinessRule rule = sampleRule(1L, "Rule 1");
-        given(getBusinessRuleQueryUseCase.getById(new BusinessRuleId(1L))).willReturn(Optional.of(rule));
+        given(getBusinessRuleQueryUseCase.getById(new BusinessRuleId(1L))).willReturn(Optional.of(new BusinessRuleView(rule, null)));
 
         mockMvc.perform(get("/api/v1/business-rules/{id}", 1)
                         .with(authentication(Role.STAFF)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Rule 1"));
+    }
+
+    @Test
+    void getByIdMustReturn200WithHydratedRequestTypeFromRealCatalogProjection() throws Exception {
+        var homologacion = new RequestType(new RequestTypeId(3L), "Homologación", "Solicitud de homologación de asignaturas", true);
+        var rule = BusinessRule.reconstitute(
+                new BusinessRuleId(42L),
+                "Regla catalogada",
+                "Descripción",
+                ConditionType.REQUEST_TYPE,
+                "3",
+                Priority.HIGH,
+                new RequestTypeId(3L),
+                true);
+        given(getBusinessRuleQueryUseCase.getById(new BusinessRuleId(42L)))
+                .willReturn(Optional.of(new BusinessRuleView(rule, homologacion)));
+
+        mockMvc.perform(get("/api/v1/business-rules/{ruleId}", 42).with(authentication(Role.STAFF)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.name").value("Regla catalogada"))
+                .andExpect(jsonPath("$.conditionType").value("REQUEST_TYPE"))
+                .andExpect(jsonPath("$.conditionValue").value("3"))
+                .andExpect(jsonPath("$.requestType.id").value(3))
+                .andExpect(jsonPath("$.requestType.name").value("Homologación"))
+                .andExpect(jsonPath("$.requestType.description").value("Solicitud de homologación de asignaturas"))
+                .andExpect(jsonPath("$.requestType.active").value(true));
+    }
+
+    @Test
+    void getByIdMustOmitRequestTypeInJsonWhenViewHasNoCatalogHydration() throws Exception {
+        var rule = BusinessRule.reconstitute(
+                new BusinessRuleId(7L),
+                "Solo plazo",
+                "Sin vínculo a catálogo",
+                ConditionType.DEADLINE,
+                "5",
+                Priority.MEDIUM,
+                null,
+                true);
+        given(getBusinessRuleQueryUseCase.getById(new BusinessRuleId(7L)))
+                .willReturn(Optional.of(new BusinessRuleView(rule, null)));
+
+        mockMvc.perform(get("/api/v1/business-rules/{ruleId}", 7).with(authentication(Role.ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.conditionType").value("DEADLINE"))
+                .andExpect(jsonPath("$.requestType").doesNotExist());
     }
 
     @Test
@@ -127,8 +197,8 @@ class BusinessRuleControllerTest {
 
     @Test
     void createMustReturn201WhenValid() throws Exception {
-        BusinessRule rule = sampleRule(1L, "New Rule");
-        given(createBusinessRuleUseCase.create(any())).willReturn(rule);
+        var rule = sampleRule(1L, "New Rule");
+        given(createBusinessRuleUseCase.create(any())).willReturn(new BusinessRuleView(rule, null));
 
         mockMvc.perform(post("/api/v1/business-rules")
                         .with(authentication(Role.ADMIN))
@@ -184,8 +254,8 @@ class BusinessRuleControllerTest {
 
     @Test
     void updateMustReturn200WhenValid() throws Exception {
-        BusinessRule rule = sampleRule(1L, "Updated Rule");
-        given(updateBusinessRuleUseCase.update(any())).willReturn(rule);
+        var rule = sampleRule(1L, "Updated Rule");
+        given(updateBusinessRuleUseCase.update(any())).willReturn(new BusinessRuleView(rule, null));
 
         mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
                         .with(authentication(Role.ADMIN))
@@ -197,6 +267,7 @@ class BusinessRuleControllerTest {
                                   "conditionType": "REQUEST_TYPE",
                                   "conditionValue": "1",
                                   "resultingPriority": "MEDIUM",
+                                  "requestTypeId": 1,
                                   "active": true
                                 }
                                 """))
@@ -222,6 +293,7 @@ class BusinessRuleControllerTest {
                   "conditionType": "REQUEST_TYPE",
                   "conditionValue": "1",
                   "resultingPriority": "HIGH",
+                  "requestTypeId": 1,
                   "active": true
                 }
                 """;
@@ -265,8 +337,13 @@ class BusinessRuleControllerTest {
     @TestConfiguration
     static class TestMappersConfiguration {
         @Bean
-        BusinessRuleRestMapper businessRuleRestMapper() {
-            return new BusinessRuleRestMapper();
+        CatalogRestMapper catalogRestMapper() {
+            return new CatalogRestMapper();
+        }
+
+        @Bean
+        BusinessRuleRestMapper businessRuleRestMapper(CatalogRestMapper catalogRestMapper) {
+            return new BusinessRuleRestMapper(catalogRestMapper);
         }
     }
 

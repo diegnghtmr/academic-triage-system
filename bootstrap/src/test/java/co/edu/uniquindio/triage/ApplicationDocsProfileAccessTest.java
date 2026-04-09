@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage;
 
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.support.MinimalLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -46,7 +47,7 @@ class ApplicationDocsDevProfileAccessTest {
             HibernateJpaAutoConfiguration.class,
             FlywayAutoConfiguration.class
     })
-    @Import(SecurityConfiguration.class)
+    @Import({SecurityConfiguration.class, MinimalLoadUserAuthPortTestConfiguration.class})
     static class DocsProfileTestApplication {
     }
 }

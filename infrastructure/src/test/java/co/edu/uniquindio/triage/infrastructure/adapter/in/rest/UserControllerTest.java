@@ -4,9 +4,11 @@ import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
 import co.edu.uniquindio.triage.application.port.in.user.GetUsersQuery;
 import co.edu.uniquindio.triage.application.port.in.user.UpdateUserUseCase;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.domain.enums.Role;
 import co.edu.uniquindio.triage.domain.exception.BusinessRuleViolationException;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
+import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
 import co.edu.uniquindio.triage.domain.model.Email;
 import co.edu.uniquindio.triage.domain.model.Identification;
 import co.edu.uniquindio.triage.domain.model.PasswordHash;
@@ -75,6 +77,9 @@ class UserControllerTest {
 
     @MockitoBean
     private GetUserByIdQuery getUserByIdQuery;
+
+    @MockitoBean
+    private LoadUserAuthPort loadUserAuthPort;
 
     @MockitoBean
     private UpdateUserUseCase updateUserUseCase;
@@ -166,7 +171,7 @@ class UserControllerTest {
         @DisplayName("Debe retornar 200 con el usuario cuando existe y el actor es ADMIN")
         void mustReturn200WithUserWhenExistsAndAdmin() throws Exception {
             var user = sampleUser(5L, "maria", Role.STUDENT);
-            given(getUserByIdQuery.execute(any())).willReturn(Optional.of(user));
+            given(getUserByIdQuery.execute(any(), any())).willReturn(Optional.of(user));
 
             mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/{id}", 5)
                             .with(adminAuthentication()))
@@ -181,9 +186,37 @@ class UserControllerTest {
         }
 
         @Test
+        @DisplayName("Debe retornar 200 con el usuario cuando el actor accede a su propio perfil (self-access)")
+        void mustReturn200WhenUserAccessesOwnProfile() throws Exception {
+            var userId = 7L;
+            var user = sampleUser(userId, "jperez", Role.STUDENT);
+            given(getUserByIdQuery.execute(any(), any())).willReturn(Optional.of(user));
+
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/{id}", userId)
+                            .with(authentication(userId, "jperez", Role.STUDENT)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(userId))
+                    .andExpect(jsonPath("$.username").value("jperez"));
+        }
+
+        @Test
+        @DisplayName("Debe retornar 403 cuando el actor (no admin) intenta acceder al perfil de otro usuario")
+        void mustReturn403WhenUserAccessesOtherProfile() throws Exception {
+            var userId = 5L;
+            var otherUserId = 10L;
+            
+            given(getUserByIdQuery.execute(any(), any()))
+                    .willThrow(new UnauthorizedOperationException(Role.STUDENT, "obtener detalle de otro usuario"));
+
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/{id}", otherUserId)
+                            .with(authentication(userId, "jperez", Role.STUDENT)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
         @DisplayName("Debe retornar 404 cuando el usuario no existe")
         void mustReturn404WhenUserDoesNotExist() throws Exception {
-            given(getUserByIdQuery.execute(any())).willReturn(Optional.empty());
+            given(getUserByIdQuery.execute(any(), any())).willReturn(Optional.empty());
 
             mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/{id}", 999)
                             .with(adminAuthentication()))
@@ -196,6 +229,9 @@ class UserControllerTest {
         @Test
         @DisplayName("Debe retornar 403 cuando el actor no tiene rol ADMIN")
         void mustReturn403WhenActorIsNotAdmin() throws Exception {
+            given(getUserByIdQuery.execute(any(), any()))
+                    .willThrow(new UnauthorizedOperationException(Role.STAFF, "obtener detalle de otro usuario"));
+
             mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/{id}", 5)
                             .with(staffAuthentication()))
                     .andExpect(status().isForbidden())

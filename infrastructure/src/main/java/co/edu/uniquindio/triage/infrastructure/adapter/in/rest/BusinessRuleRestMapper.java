@@ -1,16 +1,16 @@
-package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
+package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
+import co.edu.uniquindio.triage.application.port.in.businessrule.BusinessRuleView;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.CreateBusinessRuleCommand;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.ListBusinessRulesQuery;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.UpdateBusinessRuleCommand;
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
-import co.edu.uniquindio.triage.domain.model.BusinessRule;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.BusinessRuleResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.CreateBusinessRuleRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.UpdateBusinessRuleRequest;
-import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.catalog.RequestTypeResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,7 +18,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class BusinessRuleRestMapper {
+class BusinessRuleRestMapper {
+
+    private final CatalogRestMapper requestTypeResponseMapper;
+
+    public BusinessRuleRestMapper(CatalogRestMapper requestTypeResponseMapper) {
+        this.requestTypeResponseMapper = Objects.requireNonNull(requestTypeResponseMapper, "requestTypeResponseMapper no puede ser null");
+    }
 
     public ListBusinessRulesQuery toQuery(Optional<Boolean> active, Optional<ConditionType> conditionType) {
         return new ListBusinessRulesQuery(active.orElse(null), conditionType.orElse(null));
@@ -50,13 +56,15 @@ public class BusinessRuleRestMapper {
         );
     }
 
-    public List<BusinessRuleResponse> toResponses(List<BusinessRule> rules) {
-        Objects.requireNonNull(rules, "La lista de reglas de negocio no puede ser null");
-        return rules.stream().map(this::toResponse).toList();
+    public List<BusinessRuleResponse> toResponses(List<BusinessRuleView> views) {
+        Objects.requireNonNull(views, "La lista de vistas de reglas no puede ser null");
+        return views.stream().map(this::toResponse).toList();
     }
 
-    public BusinessRuleResponse toResponse(BusinessRule rule) {
-        Objects.requireNonNull(rule, "La regla de negocio no puede ser null");
+    public BusinessRuleResponse toResponse(BusinessRuleView view) {
+        Objects.requireNonNull(view, "La vista de regla no puede ser null");
+        var rule = view.rule();
+        var requestTypeResponse = view.requestType() != null ? requestTypeResponseMapper.toResponse(view.requestType()) : null;
         return new BusinessRuleResponse(
                 rule.getId().value(),
                 rule.getName(),
@@ -64,7 +72,7 @@ public class BusinessRuleRestMapper {
                 rule.getConditionType(),
                 rule.getConditionValue(),
                 rule.getResultingPriority(),
-                rule.getRequestTypeId() != null ? new RequestTypeResponse(rule.getRequestTypeId().value(), null, null, true) : null,
+                requestTypeResponse,
                 rule.isActive()
         );
     }

@@ -115,6 +115,9 @@ public class AcademicRequest {
 
 
     public void prioritize(Priority newPriority, String justification, UserId performedById, LocalDateTime timestamp) {
+        if (this.status != RequestStatus.CLASSIFIED) {
+            throw new IllegalStateException("Solo se puede priorizar una solicitud en estado CLASSIFIED. Estado actual: " + this.status);
+        }
         Objects.requireNonNull(newPriority, "La prioridad no puede ser null");
         this.priorityJustification = validateJustification(justification);
         this.priority = newPriority;
@@ -175,6 +178,9 @@ public class AcademicRequest {
     }
 
     public void addInternalNote(String note, UserId performedById, LocalDateTime timestamp) {
+        if (isTerminal()) {
+            throw new IllegalStateException("No se pueden agregar notas internas a una solicitud en estado terminal: " + this.status);
+        }
         var validatedNote = validateInternalNote(note);
         addHistory(HistoryAction.INTERNAL_NOTE, validatedNote, timestamp, performedById);
     }

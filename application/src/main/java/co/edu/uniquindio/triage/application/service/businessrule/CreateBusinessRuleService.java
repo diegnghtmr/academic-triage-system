@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.application.service.businessrule;
 
+import co.edu.uniquindio.triage.application.port.in.businessrule.BusinessRuleView;
 import co.edu.uniquindio.triage.application.port.in.businessrule.CreateBusinessRuleUseCase;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.CreateBusinessRuleCommand;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRulePort;
@@ -16,17 +17,20 @@ public class CreateBusinessRuleService implements CreateBusinessRuleUseCase {
     private final SaveBusinessRulePort saveBusinessRulePort;
     private final LoadBusinessRulePort loadBusinessRulePort;
     private final LoadRequestTypePort loadRequestTypePort;
+    private final BusinessRuleViewSupport businessRuleViewSupport;
 
     public CreateBusinessRuleService(SaveBusinessRulePort saveBusinessRulePort,
                                      LoadBusinessRulePort loadBusinessRulePort,
-                                     LoadRequestTypePort loadRequestTypePort) {
-        this.saveBusinessRulePort = saveBusinessRulePort;
-        this.loadBusinessRulePort = loadBusinessRulePort;
-        this.loadRequestTypePort = loadRequestTypePort;
+                                     LoadRequestTypePort loadRequestTypePort,
+                                     BusinessRuleViewSupport businessRuleViewSupport) {
+        this.saveBusinessRulePort = Objects.requireNonNull(saveBusinessRulePort, "saveBusinessRulePort no puede ser null");
+        this.loadBusinessRulePort = Objects.requireNonNull(loadBusinessRulePort, "loadBusinessRulePort no puede ser null");
+        this.loadRequestTypePort = Objects.requireNonNull(loadRequestTypePort, "loadRequestTypePort no puede ser null");
+        this.businessRuleViewSupport = Objects.requireNonNull(businessRuleViewSupport, "businessRuleViewSupport no puede ser null");
     }
 
     @Override
-    public BusinessRule create(CreateBusinessRuleCommand command) {
+    public BusinessRuleView create(CreateBusinessRuleCommand command) {
         Objects.requireNonNull(command, "El command no puede ser null");
 
         if (loadBusinessRulePort.existsByName(command.name())) {
@@ -47,6 +51,7 @@ public class CreateBusinessRuleService implements CreateBusinessRuleUseCase {
                 command.requestTypeId()
         );
 
-        return saveBusinessRulePort.save(businessRule);
+        var saved = saveBusinessRulePort.save(businessRule);
+        return businessRuleViewSupport.hydrate(saved);
     }
 }

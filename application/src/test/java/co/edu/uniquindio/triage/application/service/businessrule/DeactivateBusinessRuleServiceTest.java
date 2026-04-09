@@ -37,8 +37,8 @@ class DeactivateBusinessRuleServiceTest {
     @DisplayName("Should deactivate business rule successfully")
     void deactivateSuccessfully() {
         BusinessRuleId id = new BusinessRuleId(1L);
-        BusinessRule existingRule = new BusinessRule(
-                id, "Rule", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, true, null
+        BusinessRule existingRule = BusinessRule.reconstitute(
+                id, "Rule", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, null, true
         );
 
         DeactivateBusinessRuleCommand command = new DeactivateBusinessRuleCommand(id);
@@ -61,7 +61,7 @@ class DeactivateBusinessRuleServiceTest {
 
         assertThatThrownBy(() -> service.deactivate(command))
                 .isInstanceOf(EntityNotFoundException.class);
-        
+
         verify(saveBusinessRulePort, never()).save(any());
     }
 }
