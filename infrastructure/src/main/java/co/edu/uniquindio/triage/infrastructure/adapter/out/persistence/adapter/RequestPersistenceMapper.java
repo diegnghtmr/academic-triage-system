@@ -1,4 +1,4 @@
-package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper;
+package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
@@ -21,6 +21,8 @@ import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.Re
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestRuleJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestTypeJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.UserJpaEntity;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.CatalogPersistenceMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.UserPersistenceMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -29,7 +31,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 @Component
-public class RequestPersistenceMapper {
+class RequestPersistenceMapper {
 
     // This mapper stays manual for now because it reconstructs the aggregate root,
     // normalizes ordered history, resolves JPA references through functions, and

@@ -17,7 +17,6 @@ import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.Bu
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.OriginChannelJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestTypeJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.UserJpaEntity;
-import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.RequestPersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.RequestJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.specification.RequestSpecifications;
 import jakarta.persistence.EntityManager;
@@ -139,11 +138,13 @@ class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, L
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<AcademicRequest> loadById(RequestId requestId) {
         return requestJpaRepository.findDetailedById(requestId.value()).map(requestPersistenceMapper::toDomain);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<RequestDetail> loadDetailById(RequestId requestId) {
         return requestJpaRepository.findDetailedById(requestId.value()).map(requestPersistenceMapper::toDetail);
     }

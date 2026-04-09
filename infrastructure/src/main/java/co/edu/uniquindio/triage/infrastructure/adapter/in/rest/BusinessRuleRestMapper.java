@@ -1,4 +1,4 @@
-package co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper;
+package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.businessrule.BusinessRuleView;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.CreateBusinessRuleCommand;
@@ -7,6 +7,7 @@ import co.edu.uniquindio.triage.application.port.in.command.businessrule.UpdateB
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.BusinessRuleResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.CreateBusinessRuleRequest;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.UpdateBusinessRuleRequest;
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class BusinessRuleRestMapper {
+class BusinessRuleRestMapper {
 
     private final CatalogRestMapper requestTypeResponseMapper;
 
