@@ -36,7 +36,7 @@ class RequestController {
     private final RejectRequestUseCase rejectRequestUseCase;
     private final ListRequestsQuery listRequestsQuery;
     private final GetRequestDetailQuery getRequestDetailQuery;
-    private final GetRequestHistoryQuery getRequestHistoryQuery;
+    private final GetPrioritySuggestionQuery getPrioritySuggestionQuery;
     private final AddInternalNoteUseCase addInternalNoteUseCase;
     private final RequestRestMapper requestRestMapper;
     private final AuthenticatedActorMapper authenticatedActorMapper;
@@ -51,7 +51,7 @@ class RequestController {
                              RejectRequestUseCase rejectRequestUseCase,
                              ListRequestsQuery listRequestsQuery,
                              GetRequestDetailQuery getRequestDetailQuery,
-                             GetRequestHistoryQuery getRequestHistoryQuery,
+                             GetPrioritySuggestionQuery getPrioritySuggestionQuery,
                              AddInternalNoteUseCase addInternalNoteUseCase,
                              RequestRestMapper requestRestMapper,
                              AuthenticatedActorMapper authenticatedActorMapper) {
@@ -65,7 +65,7 @@ class RequestController {
         this.rejectRequestUseCase = Objects.requireNonNull(rejectRequestUseCase);
         this.listRequestsQuery = Objects.requireNonNull(listRequestsQuery);
         this.getRequestDetailQuery = Objects.requireNonNull(getRequestDetailQuery);
-        this.getRequestHistoryQuery = Objects.requireNonNull(getRequestHistoryQuery);
+        this.getPrioritySuggestionQuery = Objects.requireNonNull(getPrioritySuggestionQuery);
         this.addInternalNoteUseCase = Objects.requireNonNull(addInternalNoteUseCase);
         this.requestRestMapper = Objects.requireNonNull(requestRestMapper);
         this.authenticatedActorMapper = Objects.requireNonNull(authenticatedActorMapper);
@@ -193,6 +193,15 @@ class RequestController {
         return ResponseEntity.ok(requestRestMapper.toDetailResponse(detail));
     }
 
+    @GetMapping("/{requestId}/priority-suggestion")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'STUDENT')")
+    public ResponseEntity<PrioritySuggestionResponse> getPrioritySuggestion(@PathVariable("requestId") Long requestId,
+                                                                            Authentication authentication) {
+        var actor = authenticatedActorMapper.toRequiredActor(authentication);
+        var result = getPrioritySuggestionQuery.execute(requestRestMapper.toPrioritySuggestionQuery(requestId), actor);
+        return ResponseEntity.ok(requestRestMapper.toPrioritySuggestionResponse(result));
+    }
+
     @GetMapping("/{requestId}/history")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'STUDENT')")
     public ResponseEntity<List<HistoryEntryResponse>> getHistory(@PathVariable("requestId") Long requestId,
@@ -204,17 +213,16 @@ class RequestController {
             throw new AccessDeniedException("No tienes permiso para ver el historial de esta solicitud.");
         }
 
-        var history = getRequestHistoryQuery.getRequestHistory(new RequestId(requestId));
-        return ResponseEntity.ok(history.stream().map(requestRestMapper::toResponse).toList());
+        return ResponseEntity.ok(detail.history().stream().map(requestRestMapper::toResponse).toList());
     }
 
     @PostMapping("/{requestId}/history")
     @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<Void> addInternalNote(@PathVariable("requestId") Long requestId,
-                                                @Valid @RequestBody AddInternalNoteRequest request,
-                                                Authentication authentication) {
+    public ResponseEntity<HistoryEntryResponse> addInternalNote(@PathVariable("requestId") Long requestId,
+                                                                @Valid @RequestBody AddInternalNoteRequest request,
+                                                                Authentication authentication) {
         var actor = authenticatedActorMapper.toRequiredActor(authentication);
-        addInternalNoteUseCase.addInternalNote(requestRestMapper.toCommand(requestId, request, actor.userId()));
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        var createdEntry = addInternalNoteUseCase.addInternalNote(requestRestMapper.toCommand(requestId, request, actor.userId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(requestRestMapper.toResponse(createdEntry));
     }
 }

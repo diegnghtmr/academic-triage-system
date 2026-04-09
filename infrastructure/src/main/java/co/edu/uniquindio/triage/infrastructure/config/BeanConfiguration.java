@@ -22,8 +22,8 @@ import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.GetPrioritySuggestionQuery;
 import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
-import co.edu.uniquindio.triage.application.port.in.request.GetRequestHistoryQuery;
 import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
 import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
@@ -53,6 +53,7 @@ import co.edu.uniquindio.triage.application.service.request.*;
 import co.edu.uniquindio.triage.application.service.user.GetUserByIdService;
 import co.edu.uniquindio.triage.application.service.user.GetUsersService;
 import co.edu.uniquindio.triage.application.service.user.UpdateUserService;
+import co.edu.uniquindio.triage.domain.service.PriorityEngine;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -75,27 +76,50 @@ class BeanConfiguration {
     }
 
     @Bean
-    ListBusinessRulesQueryUseCase listBusinessRulesQueryUseCase(LoadBusinessRulePort loadBusinessRulePort) {
-        return new ListBusinessRulesService(loadBusinessRulePort);
+    BusinessRuleViewSupport businessRuleViewSupport(LoadRequestTypePort loadRequestTypePort) {
+        return new BusinessRuleViewSupport(loadRequestTypePort);
     }
 
     @Bean
-    GetBusinessRuleQueryUseCase getBusinessRuleQueryUseCase(LoadBusinessRulePort loadBusinessRulePort) {
-        return new GetBusinessRuleService(loadBusinessRulePort);
+    PriorityEngine priorityEngine() {
+        return new PriorityEngine();
+    }
+
+    @Bean
+    GetPrioritySuggestionQuery getPrioritySuggestionQuery(LoadRequestPort loadRequestPort,
+                                                           LoadBusinessRulePort loadBusinessRulePort,
+                                                           PriorityEngine priorityEngine) {
+        return new GetPrioritySuggestionService(loadRequestPort, loadBusinessRulePort, priorityEngine);
+    }
+
+    @Bean
+    ListBusinessRulesQueryUseCase listBusinessRulesQueryUseCase(LoadBusinessRulePort loadBusinessRulePort,
+                                                                BusinessRuleViewSupport businessRuleViewSupport) {
+        return new ListBusinessRulesService(loadBusinessRulePort, businessRuleViewSupport);
+    }
+
+    @Bean
+    GetBusinessRuleQueryUseCase getBusinessRuleQueryUseCase(LoadBusinessRulePort loadBusinessRulePort,
+                                                            BusinessRuleViewSupport businessRuleViewSupport) {
+        return new GetBusinessRuleService(loadBusinessRulePort, businessRuleViewSupport);
     }
 
     @Bean
     CreateBusinessRuleUseCase createBusinessRuleUseCase(SaveBusinessRulePort saveBusinessRulePort,
                                                         LoadBusinessRulePort loadBusinessRulePort,
-                                                        LoadRequestTypePort loadRequestTypePort) {
-        return new CreateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort);
+                                                        LoadRequestTypePort loadRequestTypePort,
+                                                        BusinessRuleViewSupport businessRuleViewSupport) {
+        return new CreateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort,
+                businessRuleViewSupport);
     }
 
     @Bean
     UpdateBusinessRuleUseCase updateBusinessRuleUseCase(SaveBusinessRulePort saveBusinessRulePort,
                                                         LoadBusinessRulePort loadBusinessRulePort,
-                                                        LoadRequestTypePort loadRequestTypePort) {
-        return new UpdateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort);
+                                                        LoadRequestTypePort loadRequestTypePort,
+                                                        BusinessRuleViewSupport businessRuleViewSupport) {
+        return new UpdateBusinessRuleService(saveBusinessRulePort, loadBusinessRulePort, loadRequestTypePort,
+                businessRuleViewSupport);
     }
 
     @Bean
@@ -273,12 +297,6 @@ class BeanConfiguration {
                 loadUserAuthPort,
                 saveRequestPort
         );
-    }
-
-    @Bean
-    GetRequestHistoryQuery getRequestHistoryQuery(LoadRequestPort loadRequestPort,
-                                                  LoadRequestHistoryPort loadRequestHistoryPort) {
-        return new GetRequestHistoryService(loadRequestPort, loadRequestHistoryPort);
     }
 
     @Bean
