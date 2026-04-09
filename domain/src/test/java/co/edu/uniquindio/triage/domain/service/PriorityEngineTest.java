@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -96,9 +97,40 @@ class PriorityEngineTest {
         assertThrows(NullPointerException.class, () -> priorityEngine.evaluate(request, null));
     }
 
+    @Test
+    @DisplayName("Should return detailed evaluation with matched rules ordered by inclusion")
+    void shouldReturnDetailedEvaluationWithMatches() {
+        RequestTypeId typeA = new RequestTypeId(1L);
+        AcademicRequest request = createRequest(typeA);
+
+        BusinessRule ruleLow = BusinessRule.reconstitute(
+                new BusinessRuleId(1L), "Rule Low", "Desc",
+                ConditionType.REQUEST_TYPE, "1", Priority.LOW, typeA, true);
+
+        BusinessRule ruleHigh = BusinessRule.reconstitute(
+                new BusinessRuleId(2L), "Rule High", "Desc",
+                ConditionType.REQUEST_TYPE, "1", Priority.HIGH, typeA, true);
+
+        var details = priorityEngine.evaluateWithDetails(request, List.of(ruleLow, ruleHigh));
+
+        assertThat(details.suggestedPriority()).isEqualTo(Priority.HIGH);
+        assertThat(details.matchedRules()).hasSize(2);
+        assertThat(details.matchedRules()).extracting(BusinessRule::getId).containsExactlyInAnyOrder(
+                new BusinessRuleId(1L), new BusinessRuleId(2L));
+    }
+
+    @Test
+    @DisplayName("Should return LOW and empty matches when nothing matches")
+    void shouldReturnLowWithEmptyMatches() {
+        AcademicRequest request = createRequest(new RequestTypeId(1L));
+        var details = priorityEngine.evaluateWithDetails(request, Collections.emptyList());
+        assertThat(details.suggestedPriority()).isEqualTo(Priority.LOW);
+        assertThat(details.matchedRules()).isEmpty();
+    }
+
     private AcademicRequest createRequest(RequestTypeId typeId) {
         return new AcademicRequest(
-                new RequestId(1L),
+                RequestId.of(1L),
                 "Test description",
                 new UserId(1L),
                 new OriginChannelId(1L),

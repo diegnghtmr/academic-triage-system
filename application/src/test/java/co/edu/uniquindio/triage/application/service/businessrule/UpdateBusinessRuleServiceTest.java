@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.application.service.businessrule;
 
+import co.edu.uniquindio.triage.application.port.in.businessrule.BusinessRuleView;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.UpdateBusinessRuleCommand;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRulePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
@@ -9,6 +10,7 @@ import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.exception.DuplicateCatalogEntryException;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
 import co.edu.uniquindio.triage.domain.model.BusinessRule;
+import co.edu.uniquindio.triage.domain.model.RequestType;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +25,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateBusinessRuleServiceTest {
@@ -34,6 +38,8 @@ class UpdateBusinessRuleServiceTest {
     private LoadBusinessRulePort loadBusinessRulePort;
     @Mock
     private LoadRequestTypePort loadRequestTypePort;
+    @Mock
+    private BusinessRuleViewSupport businessRuleViewSupport;
 
     @InjectMocks
     private UpdateBusinessRuleService service;
@@ -42,23 +48,25 @@ class UpdateBusinessRuleServiceTest {
     @DisplayName("Should update business rule successfully")
     void updateSuccessfully() {
         BusinessRuleId id = new BusinessRuleId(1L);
-        BusinessRule existingRule = new BusinessRule(
-                id, "Old Name", "Old Desc", ConditionType.DEADLINE, "10", Priority.LOW, true, null
+        RequestTypeId typeId = new RequestTypeId(5L);
+        BusinessRule existingRule = BusinessRule.reconstitute(
+                id, "Old Name", "Old Desc", ConditionType.DEADLINE, "10", Priority.LOW, null, true
         );
 
         UpdateBusinessRuleCommand command = new UpdateBusinessRuleCommand(
-                id, "New Name", "New Desc", ConditionType.REQUEST_TYPE, "new-val", Priority.HIGH, null, true
+                id, "New Name", "New Desc", ConditionType.REQUEST_TYPE, "5", Priority.HIGH, typeId, true
         );
 
         when(loadBusinessRulePort.findById(id)).thenReturn(Optional.of(existingRule));
         when(loadBusinessRulePort.existsByName("New Name")).thenReturn(false);
+        when(loadRequestTypePort.loadById(typeId)).thenReturn(Optional.of(mock(RequestType.class)));
         when(saveBusinessRulePort.save(any(BusinessRule.class))).thenAnswer(i -> i.getArgument(0));
+        when(businessRuleViewSupport.hydrate(any())).thenAnswer(inv -> new BusinessRuleView(inv.getArgument(0), null));
 
-        BusinessRule result = service.update(command);
+        BusinessRuleView result = service.update(command);
 
-        assertThat(result).isNotNull();
-        assertThat(result.getName()).isEqualTo("New Name");
-        assertThat(result.getResultingPriority()).isEqualTo(Priority.HIGH);
+        assertThat(result.rule().getName()).isEqualTo("New Name");
+        assertThat(result.rule().getResultingPriority()).isEqualTo(Priority.HIGH);
         verify(saveBusinessRulePort).save(any(BusinessRule.class));
     }
 
@@ -80,8 +88,8 @@ class UpdateBusinessRuleServiceTest {
     @DisplayName("Should throw exception when name already exists for another rule")
     void throwExceptionWhenNameExists() {
         BusinessRuleId id = new BusinessRuleId(1L);
-        BusinessRule existingRule = new BusinessRule(
-                id, "Old Name", "Old Desc", ConditionType.DEADLINE, "10", Priority.LOW, true, null
+        BusinessRule existingRule = BusinessRule.reconstitute(
+                id, "Old Name", "Old Desc", ConditionType.DEADLINE, "10", Priority.LOW, null, true
         );
 
         UpdateBusinessRuleCommand command = new UpdateBusinessRuleCommand(
@@ -100,11 +108,11 @@ class UpdateBusinessRuleServiceTest {
     void throwExceptionWhenRequestTypeNotFound() {
         BusinessRuleId id = new BusinessRuleId(1L);
         RequestTypeId rtId = new RequestTypeId(999L);
-        BusinessRule existingRule = new BusinessRule(
-                id, "Name", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, true, null
+        BusinessRule existingRule = BusinessRule.reconstitute(
+                id, "Name", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, null, true
         );
         UpdateBusinessRuleCommand command = new UpdateBusinessRuleCommand(
-                id, "Name", "Desc", ConditionType.DEADLINE, "10", Priority.HIGH, rtId, true
+                id, "Name", "Desc", ConditionType.REQUEST_TYPE, "999", Priority.HIGH, rtId, true
         );
 
         when(loadBusinessRulePort.findById(id)).thenReturn(Optional.of(existingRule));

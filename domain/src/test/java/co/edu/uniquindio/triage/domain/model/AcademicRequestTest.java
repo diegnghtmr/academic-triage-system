@@ -294,6 +294,44 @@ class AcademicRequestTest {
                 .hasMessageContaining("entre 1 y 2000");
     }
 
+    @Test
+    void prioritizeMustRejectStatusOutsideClassified() {
+        var request = newRequest(); // Está en REGISTERED
+        var prioritizerId = new UserId(21L);
+
+        assertThatThrownBy(() -> request.prioritize(Priority.HIGH, "Justificación válida", prioritizerId, LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CLASSIFIED");
+    }
+
+    @Test
+    void addInternalNoteMustRejectInTerminalStates() {
+        var actorId = new UserId(70L);
+        var timestamp = LocalDateTime.now();
+        var note = "Nota interna";
+
+        // Caso CANCELLED
+        var cancelled = newRequest();
+        cancelled.cancel("Razón válida", actorId, timestamp);
+        assertThatThrownBy(() -> cancelled.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+
+        // Caso REJECTED
+        var rejected = newRequest();
+        rejected.reject("Razón válida", actorId, timestamp);
+        assertThatThrownBy(() -> rejected.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+
+        // Caso CLOSED
+        var closed = attendedRequest();
+        closed.close("Observación válida", actorId, timestamp);
+        assertThatThrownBy(() -> closed.addInternalNote(note, actorId, timestamp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminal");
+    }
+
     private AcademicRequest newRequest() {
         return new AcademicRequest(
                 new RequestId(1L),
@@ -387,7 +425,46 @@ class AcademicRequestTest {
         request.classify(new RequestTypeId(1L), "Justification", new UserId(2L), LocalDateTime.now());
         assertThat(request.isPendingClassification()).isFalse();
         assertThat(request.isPendingPrioritization()).isTrue();
-        }
+    }
+
+    @Test
+    void isCancellableReflectsValidCancelTransitions() {
+        assertThat(newRequest().isCancellable()).isTrue();
+        assertThat(classifiedRequest().isCancellable()).isTrue();
+        assertThat(inProgressRequest().isCancellable()).isFalse();
+        assertThat(attendedRequest().isCancellable()).isFalse();
+
+        var closed = attendedRequest();
+        closed.close("Observación de cierre válida aquíextendida", new UserId(1L), LocalDateTime.now());
+        assertThat(closed.isCancellable()).isFalse();
+    }
+
+    @Test
+    void isUnattendedOnlyForInProgressRequests() {
+        assertThat(newRequest().isUnattended()).isFalse();
+        assertThat(classifiedRequest().isUnattended()).isFalse();
+        assertThat(inProgressRequest().isUnattended()).isTrue();
+        assertThat(attendedRequest().isUnattended()).isFalse();
+    }
+
+    @Test
+    void isPendingPrioritizationDependsOnlyOnClassifiedStatus() {
+        assertThat(newRequest().isPendingPrioritization()).isFalse();
+        assertThat(classifiedRequest().isPendingPrioritization()).isTrue();
+        assertThat(prioritizedRequest().isPendingPrioritization()).isTrue();
+        assertThat(inProgressRequest().isPendingPrioritization()).isFalse();
+    }
+
+    @Test
+    void prioritizeMustRejectNullOrBlankJustification() {
+        var request = classifiedRequest();
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, null, new UserId(21L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+        assertThatThrownBy(() -> request.prioritize(Priority.LOW, "   ", new UserId(21L), LocalDateTime.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("justificación");
+    }
 
 
     @Test

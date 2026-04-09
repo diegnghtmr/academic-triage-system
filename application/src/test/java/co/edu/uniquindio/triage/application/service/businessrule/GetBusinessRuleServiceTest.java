@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.application.service.businessrule;
 
+import co.edu.uniquindio.triage.application.port.in.businessrule.BusinessRuleView;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRulePort;
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
 import co.edu.uniquindio.triage.domain.enums.Priority;
@@ -23,6 +24,9 @@ class GetBusinessRuleServiceTest {
     @Mock
     private LoadBusinessRulePort loadBusinessRulePort;
 
+    @Mock
+    private BusinessRuleViewSupport businessRuleViewSupport;
+
     @InjectMocks
     private GetBusinessRuleService service;
 
@@ -30,16 +34,16 @@ class GetBusinessRuleServiceTest {
     @DisplayName("Should return rule when found by ID")
     void returnRuleWhenFound() {
         BusinessRuleId id = new BusinessRuleId(1L);
-        BusinessRule rule = new BusinessRule(
-                id, "Rule", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, true, null
-        );
+        BusinessRule rule = BusinessRule.reconstitute(
+                id, "Rule", "Desc", ConditionType.DEADLINE, "10", Priority.LOW, null, true);
 
         when(loadBusinessRulePort.findById(id)).thenReturn(Optional.of(rule));
+        when(businessRuleViewSupport.hydrate(rule)).thenReturn(new BusinessRuleView(rule, null));
 
-        Optional<BusinessRule> result = service.getById(id);
+        Optional<BusinessRuleView> result = service.getById(id);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Rule");
+        assertThat(result.get().rule().getName()).isEqualTo("Rule");
     }
 
     @Test
@@ -48,7 +52,7 @@ class GetBusinessRuleServiceTest {
         BusinessRuleId id = new BusinessRuleId(1L);
         when(loadBusinessRulePort.findById(id)).thenReturn(Optional.empty());
 
-        Optional<BusinessRule> result = service.getById(id);
+        Optional<BusinessRuleView> result = service.getById(id);
 
         assertThat(result).isEmpty();
     }
