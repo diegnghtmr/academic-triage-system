@@ -2,7 +2,6 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.businessrule.*;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.DeactivateBusinessRuleCommand;
-import co.edu.uniquindio.triage.domain.enums.ConditionType;
 import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.businessrule.BusinessRuleResponse;
@@ -38,7 +37,7 @@ class BusinessRuleController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<List<BusinessRuleResponse>> listRules(
             @RequestParam(name = "active") Optional<Boolean> active,
-            @RequestParam(name = "conditionType") Optional<ConditionType> conditionType
+            @RequestParam(name = "conditionType") Optional<String> conditionType
     ) {
         var result = listBusinessRulesQueryUseCase.list(mapper.toQuery(active, conditionType));
         return ResponseEntity.ok(mapper.toResponses(result));

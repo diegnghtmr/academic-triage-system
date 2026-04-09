@@ -26,8 +26,12 @@ class BusinessRuleRestMapper {
         this.requestTypeResponseMapper = Objects.requireNonNull(requestTypeResponseMapper, "requestTypeResponseMapper no puede ser null");
     }
 
-    public ListBusinessRulesQuery toQuery(Optional<Boolean> active, Optional<ConditionType> conditionType) {
-        return new ListBusinessRulesQuery(active.orElse(null), conditionType.orElse(null));
+    public ListBusinessRulesQuery toQuery(Optional<Boolean> active, Optional<String> conditionTypeParam) {
+        ConditionType conditionType = null;
+        if (conditionTypeParam.isPresent()) {
+            conditionType = BusinessRuleConditionTypeParser.parseRequired(conditionTypeParam.get());
+        }
+        return new ListBusinessRulesQuery(active.orElse(null), conditionType);
     }
 
     public CreateBusinessRuleCommand toCommand(CreateBusinessRuleRequest request) {
@@ -35,7 +39,7 @@ class BusinessRuleRestMapper {
         return new CreateBusinessRuleCommand(
                 request.name(),
                 request.description(),
-                request.conditionType(),
+                BusinessRuleConditionTypeParser.parseRequired(request.conditionType()),
                 request.conditionValue(),
                 request.resultingPriority(),
                 request.requestTypeId() != null ? new RequestTypeId(request.requestTypeId()) : null
@@ -48,7 +52,7 @@ class BusinessRuleRestMapper {
                 new BusinessRuleId(ruleId),
                 request.name(),
                 request.description(),
-                request.conditionType(),
+                BusinessRuleConditionTypeParser.parseRequired(request.conditionType()),
                 request.conditionValue(),
                 request.resultingPriority(),
                 request.requestTypeId() != null ? new RequestTypeId(request.requestTypeId()) : null,
