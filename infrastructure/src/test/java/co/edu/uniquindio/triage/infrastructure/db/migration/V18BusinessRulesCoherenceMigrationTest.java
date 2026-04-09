@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Evidencia conductual de {@code V18__business_rules_coherence.sql} sobre datos legacy reales:
- * canonización segura, desactivación de filas no determinísticas y FK limpia en DEADLINE/IMPACT_LEVEL.
+ * canonización segura, desactivación de filas no determinísticas y FK limpia en DEADLINE/IMPACT_LEVEL (pre-V19).
  */
 class V18BusinessRulesCoherenceMigrationTest {
 
@@ -72,6 +72,7 @@ class V18BusinessRulesCoherenceMigrationTest {
         Flyway.configure()
                 .dataSource(url, user, password)
                 .locations("classpath:db/migration")
+                .target("18")
                 .load()
                 .migrate();
 

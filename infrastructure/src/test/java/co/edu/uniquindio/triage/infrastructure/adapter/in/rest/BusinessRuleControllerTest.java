@@ -42,6 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static co.edu.uniquindio.triage.infrastructure.adapter.in.rest.BusinessRuleConditionTypeParser.LEGACY_IMPACT_LEVEL_REJECTED;
 
 @WebMvcTest(BusinessRuleController.class)
 @ContextConfiguration(classes = {
@@ -110,6 +111,52 @@ class BusinessRuleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].requestType.id").value(1))
                 .andExpect(jsonPath("$[0].requestType.name").value("Certificado"));
+    }
+
+    @Test
+    void listRulesMustReturn400WhenConditionTypeIsLegacyImpactLevel() throws Exception {
+        mockMvc.perform(get("/api/v1/business-rules")
+                        .with(authentication(Role.ADMIN))
+                        .param("conditionType", "IMPACT_LEVEL"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(LEGACY_IMPACT_LEVEL_REJECTED));
+    }
+
+    @Test
+    void createMustReturn400WhenConditionTypeIsLegacyImpactLevel() throws Exception {
+        mockMvc.perform(post("/api/v1/business-rules")
+                        .with(authentication(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Legacy",
+                                  "description": "x",
+                                  "conditionType": "IMPACT_LEVEL",
+                                  "conditionValue": "HIGH",
+                                  "resultingPriority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(LEGACY_IMPACT_LEVEL_REJECTED));
+    }
+
+    @Test
+    void updateMustReturn400WhenConditionTypeIsLegacyImpactLevel() throws Exception {
+        mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Legacy",
+                                  "description": "x",
+                                  "conditionType": "IMPACT_LEVEL",
+                                  "conditionValue": "HIGH",
+                                  "resultingPriority": "HIGH",
+                                  "active": true
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(LEGACY_IMPACT_LEVEL_REJECTED));
     }
 
     @Test
