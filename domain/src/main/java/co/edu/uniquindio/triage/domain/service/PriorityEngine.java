@@ -4,6 +4,7 @@ import co.edu.uniquindio.triage.domain.enums.Priority;
 import co.edu.uniquindio.triage.domain.model.AcademicRequest;
 import co.edu.uniquindio.triage.domain.model.BusinessRule;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -21,21 +22,31 @@ public class PriorityEngine {
     /**
      * Evaluates the given active rules against a request and returns the highest priority
      * that matches. If no rules match, returns {@link Priority#LOW} as default.
-     *
-     * @param request     the academic request to evaluate
-     * @param activeRules the list of active business rules to check
-     * @return the highest matching priority, or LOW if no rules match
      */
     public Priority evaluate(AcademicRequest request, List<BusinessRule> activeRules) {
+        return evaluateWithDetails(request, activeRules).suggestedPriority();
+    }
+
+    /**
+     * Igual que {@link #evaluate} pero incluye la lista de reglas activas que aplicaron (sin mutar la solicitud).
+     */
+    public PriorityEvaluationResult evaluateWithDetails(AcademicRequest request, List<BusinessRule> activeRules) {
         Objects.requireNonNull(request, "La solicitud no puede ser null");
         Objects.requireNonNull(activeRules, "La lista de reglas no puede ser null");
 
-        Optional<Priority> highestMatch = activeRules.stream()
-                .filter(rule -> rule.matches(request))
+        var matched = new ArrayList<BusinessRule>();
+        for (BusinessRule rule : activeRules) {
+            if (rule.matches(request)) {
+                matched.add(rule);
+            }
+        }
+
+        Optional<Priority> highestMatch = matched.stream()
                 .map(BusinessRule::getResultingPriority)
                 .max(PRIORITY_COMPARATOR);
 
-        return highestMatch.orElse(Priority.LOW);
+        var suggested = highestMatch.orElse(Priority.LOW);
+        return new PriorityEvaluationResult(suggested, List.copyOf(matched));
     }
 
     private static int priorityWeight(Priority priority) {
