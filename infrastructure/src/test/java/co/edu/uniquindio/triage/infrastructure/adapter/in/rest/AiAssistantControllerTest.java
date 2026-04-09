@@ -15,12 +15,11 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.AiRestMapp
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +27,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,16 +42,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AiAssistantController.class)
-@ContextConfiguration(classes = {
-        AiAssistantController.class,
-        GlobalExceptionHandler.class,
-        SecurityConfiguration.class,
-        AiAssistantControllerTest.TestMappersConfiguration.class,
-        AiAssistantControllerTest.TestApplication.class
-})
 @Import({
         GlobalExceptionHandler.class,
         SecurityConfiguration.class,
+        NoopLoadUserAuthPortTestConfiguration.class,
+        AiAssistantControllerTest.TestApplication.class,
         AiAssistantControllerTest.TestMappersConfiguration.class
 })
 @TestPropertySource(properties = {
