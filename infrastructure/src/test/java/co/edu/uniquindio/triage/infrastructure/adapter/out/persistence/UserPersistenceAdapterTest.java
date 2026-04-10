@@ -1,6 +1,7 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence;
 
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
 import co.edu.uniquindio.triage.domain.model.Email;
 import co.edu.uniquindio.triage.domain.model.Identification;
 import co.edu.uniquindio.triage.domain.model.PasswordHash;
@@ -112,6 +113,36 @@ class UserPersistenceAdapterTest {
         assertThatThrownBy(() -> userJpaRepository.saveAndFlush(
                 entity("mlopez", "mlopez@uniquindio.edu.co", "1094123456")
         )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void saveMustTranslateDuplicateUsernameToDuplicateUserException() {
+        userPersistenceAdapter.save(newUser("dup_user", "dup1@uniquindio.edu.co", "1000000001", Role.STUDENT));
+
+        assertThatThrownBy(() -> userPersistenceAdapter.save(
+                newUser("dup_user", "dup2@uniquindio.edu.co", "1000000002", Role.STUDENT)))
+                .isInstanceOf(DuplicateUserException.class)
+                .hasMessageContaining("username");
+    }
+
+    @Test
+    void saveMustTranslateDuplicateEmailToDuplicateUserException() {
+        userPersistenceAdapter.save(newUser("user_email_a", "shared@uniquindio.edu.co", "1000000001", Role.STUDENT));
+
+        assertThatThrownBy(() -> userPersistenceAdapter.save(
+                newUser("user_email_b", "shared@uniquindio.edu.co", "1000000002", Role.STUDENT)))
+                .isInstanceOf(DuplicateUserException.class)
+                .hasMessageContaining("email");
+    }
+
+    @Test
+    void saveMustTranslateDuplicateIdentificationToDuplicateUserException() {
+        userPersistenceAdapter.save(newUser("user_id_a", "ida@uniquindio.edu.co", "1094123456", Role.STUDENT));
+
+        assertThatThrownBy(() -> userPersistenceAdapter.save(
+                newUser("user_id_b", "idb@uniquindio.edu.co", "1094123456", Role.STUDENT)))
+                .isInstanceOf(DuplicateUserException.class)
+                .hasMessageContaining("identification");
     }
 
     private User newUser(String username, String email, String identification, Role role) {

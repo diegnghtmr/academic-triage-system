@@ -218,16 +218,21 @@ docker-compose up -d mariadb
 
 4. **Run the application**
 
+Activa el perfil `dev` para desarrollo local: carga documentación, secret JWT de desarrollo en `application-dev.yml` y la segunda ruta Flyway `classpath:db/migration-dev`, que **solo en local** vuelve a crear el usuario administrador de prueba documentado abajo.
+
 ```bash
 set -a
 source .env
 set +a
+export SPRING_PROFILES_ACTIVE=dev
 ./gradlew bootstrap:bootRun
 ```
 
+Sin perfil `dev`, las migraciones compartidas (`db/migration`) **no** insertan ese admin: deberás registrarte vía API u operar otro usuario con privilegios.
+
 5. **Open Swagger UI**
 
-- `http://localhost:8080/swagger-ui.html`
+- `http://localhost:8080/swagger-ui.html` (con `APP_DOCS_ENABLED=true` o perfil `dev`, donde la documentación viene habilitada)
 
 6. **Check health**
 
@@ -244,6 +249,8 @@ Bring up the full local stack:
 ```bash
 docker-compose up --build -d
 ```
+
+El servicio `app` usa por defecto `SPRING_PROFILES_ACTIVE=dev`, así que Flyway aplica también `db/migration-dev` y queda disponible el **administrador local de desarrollo** (`admin` / `admin123`, hash en migración). Eso no forma parte del baseline “solo `db/migration`”: no lo habilités en entornos compartidos.
 
 Check container status:
 
@@ -433,7 +440,7 @@ Authentication is JWT-based and stateless.
 | Register / login            |          ✅ |          ✅ |            ✅ |
 | Create request              |          ✅ |          ✅ |            ❌ |
 | Request operational actions |          ❌ |          ✅ | role-specific |
-| AI suggest classification   |          ❌ |          ✅ |            ✅ |
+| AI suggest classification   |          ❌ |          ✅ |            ❌ |
 | AI summarize                |          ❌ |          ✅ |            ✅ |
 | Catalog management          |          ❌ |          ❌ |            ✅ |
 | User management             |          ❌ |          ❌ |            ✅ |

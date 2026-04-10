@@ -15,7 +15,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(
@@ -35,10 +38,12 @@ class ApplicationDocsDevProfileAccessTest {
     @Test
     void docsMustBePublicWithDevProfileDefaults() throws Exception {
         mockMvc.perform(get("/api-docs"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").exists());
 
         mockMvc.perform(get("/swagger-ui.html"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("swagger-ui")));
     }
 
     @SpringBootConfiguration
@@ -69,10 +74,12 @@ class ApplicationDocsTestProfileAccessTest {
     @Test
     void docsMustBePublicWithTestProfileDefaults() throws Exception {
         mockMvc.perform(get("/api-docs"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").exists());
 
         mockMvc.perform(get("/swagger-ui.html"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("swagger-ui")));
     }
 }
 

@@ -29,6 +29,7 @@ spring:
         format_sql: true
   flyway:
     enabled: true
+    # Solo migraciones compartidas. Perfiles `dev`/`test` en bootstrap añaden `classpath:db/migration-dev`.
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
