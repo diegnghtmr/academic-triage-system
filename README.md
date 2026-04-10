@@ -61,7 +61,7 @@ The result is a backend that is both **operationally useful** and **architectura
 - **Catalog management** for request types and origin channels
 - **Business rule management** for priority decisions
 - **User management** for staff and administrators
-- **Dashboard/reporting endpoints** for operational metrics
+- **Dashboard/reporting endpoints** (ADMIN-only) for operational metrics
 - **OpenAPI / Swagger UI** for interactive API exploration
 - **Optional AI support** through Spring AI and OpenAI-compatible providers
 - **Dockerized local stack** with MariaDB, application container, and optional Adminer
@@ -444,7 +444,7 @@ Authentication is JWT-based and stateless.
 | AI summarize                |          ❌ |          ✅ |            ✅ |
 | Catalog management          |          ❌ |          ❌ |            ✅ |
 | User management             |          ❌ |          ❌ |            ✅ |
-| Reports                     | own/limited | operational |          full |
+| Dashboard / report metrics    |          ❌ |          ❌ |            ✅ |
 
 The application also excludes Spring Boot’s default generated user configuration, relying instead on the project’s own JWT-based security model.
 

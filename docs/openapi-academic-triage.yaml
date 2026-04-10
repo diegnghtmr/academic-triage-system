@@ -597,7 +597,6 @@ paths:
             schema:
               $ref: '#/components/schemas/AddHistoryNoteBody'
             example:
-              action: "INTERNAL_NOTE"
               observations: "Contacted the instructor to verify seat availability."
       responses:
         '201':
@@ -639,6 +638,14 @@ paths:
             type: boolean
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
+        - name: sort
+          in: query
+          description: |
+            Sort field and direction, comma-separated (`field,direction`).
+            Supported fields: `username`, `email`, `firstName`, `lastName`, `role`, `active`.
+          schema:
+            type: string
+            default: "username,asc"
       responses:
         '200':
           description: Paginated list of users
@@ -714,15 +721,18 @@ paths:
     get:
       tags: [Catalogs]
       summary: List request types
-      description: Returns all active request types in the catalog.
+      description: |
+        Returns request types from the catalog (ordered by name).
+        If `active` is omitted, only active types are returned by default.
+        If `active` is explicitly provided (`true` or `false`), only matching rows are returned.
       operationId: listRequestTypes
       parameters:
         - name: active
           in: query
-          description: Filter by active status. Defaults to returning only active types.
+          description: |
+            Optional. When omitted, defaults to filtering only active types (`active=true`). When set explicitly, filters by the provided active flag.
           schema:
             type: boolean
-            default: true
       responses:
         '200':
           description: List of request types
@@ -821,15 +831,18 @@ paths:
     get:
       tags: [Catalogs]
       summary: List origin channels
-      description: Returns all available origin channels (e.g., in-person, email, phone, academic system).
+      description: |
+        Lists origin channels (e.g., in-person, email, phone, academic system), ordered by name.
+        If `active` is omitted, only active channels are returned by default.
+        If `active` is explicitly provided (`true` or `false`), only matching rows are returned.
       operationId: listOriginChannels
       parameters:
         - name: active
           in: query
-          description: Filter by active status. Defaults to returning only active channels.
+          description: |
+            Optional. When omitted, defaults to filtering only active channels (`active=true`). When set explicitly, filters by the provided active flag.
           schema:
             type: boolean
-            default: true
       responses:
         '200':
           description: List of origin channels
@@ -1562,6 +1575,7 @@ components:
 
     UpdateUserBody:
       type: object
+      required: [firstName, lastName, identification, email, role, active]
       properties:
         firstName:
           type: string
@@ -1569,6 +1583,9 @@ components:
         lastName:
           type: string
           maxLength: 75
+        identification:
+          type: string
+          maxLength: 20
         email:
           type: string
           format: email
@@ -1797,16 +1814,13 @@ components:
 
     AddHistoryNoteBody:
       type: object
-      required: [action, observations]
+      required: [observations]
       properties:
-        action:
-          type: string
-          default: "INTERNAL_NOTE"
-          description: Action label for the note. Defaults to INTERNAL_NOTE.
         observations:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Note text (the server records the entry as an internal note; clients do not send an action).
 
     # ── Catalogs ──
 
