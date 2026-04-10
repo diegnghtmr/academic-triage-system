@@ -8,6 +8,7 @@ spring:
     show-sql: true
   flyway:
     enabled: true
+    locations: classpath:db/migration,classpath:db/migration-dev
   ai:
     openai:
       api-key: ""

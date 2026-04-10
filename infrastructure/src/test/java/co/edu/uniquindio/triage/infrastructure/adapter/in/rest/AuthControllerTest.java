@@ -40,6 +40,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -202,6 +203,30 @@ class AuthControllerTest {
                                 """))
                 .andExpect(MockMvcResultMatchers.status().isConflict())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void registerMustReturn500WhenUnhandledDataIntegrityViolationOccurs() throws Exception {
+        given(registerUseCase.register(any(), eq(Optional.empty())))
+                .willThrow(new DataIntegrityViolationException("Simulated unclassified constraint"));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "jperez",
+                                  "email": "jperez@uniquindio.edu.co",
+                                  "password": "MyPassword123",
+                                  "firstName": "Juan",
+                                  "lastName": "Pérez",
+                                  "identification": "1094123456"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(500))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Internal Server Error"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.detail").value(
+                        "La operación no pudo completarse por una restricción de base de datos"));
     }
 
     @Test

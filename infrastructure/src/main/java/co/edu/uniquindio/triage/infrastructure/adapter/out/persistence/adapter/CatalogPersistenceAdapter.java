@@ -12,6 +12,7 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.CatalogPersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.OriginChannelJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.RequestTypeJpaRepository;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.support.MariaDbUniqueViolation;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
@@ -67,7 +68,10 @@ class CatalogPersistenceAdapter implements LoadRequestTypePort, SaveRequestTypeP
             var saved = requestTypeJpaRepository.saveAndFlush(catalogPersistenceMapper.toEntity(requestType));
             return catalogPersistenceMapper.toDomain(saved);
         } catch (DataIntegrityViolationException exception) {
-            throw new DuplicateCatalogEntryException(REQUEST_TYPE_CATALOG_NAME, requestType.getName());
+            if (MariaDbUniqueViolation.isUniqueViolation(exception)) {
+                throw new DuplicateCatalogEntryException(REQUEST_TYPE_CATALOG_NAME, requestType.getName());
+            }
+            throw exception;
         }
     }
 
@@ -101,7 +105,10 @@ class CatalogPersistenceAdapter implements LoadRequestTypePort, SaveRequestTypeP
             var saved = originChannelJpaRepository.saveAndFlush(catalogPersistenceMapper.toEntity(originChannel));
             return catalogPersistenceMapper.toDomain(saved);
         } catch (DataIntegrityViolationException exception) {
-            throw new DuplicateCatalogEntryException(ORIGIN_CHANNEL_CATALOG_NAME, originChannel.getName());
+            if (MariaDbUniqueViolation.isUniqueViolation(exception)) {
+                throw new DuplicateCatalogEntryException(ORIGIN_CHANNEL_CATALOG_NAME, originChannel.getName());
+            }
+            throw exception;
         }
     }
 }

@@ -7,12 +7,15 @@ import co.edu.uniquindio.triage.application.port.out.persistence.SaveUserPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.UserSearchCriteria;
 import co.edu.uniquindio.triage.domain.model.Email;
 import co.edu.uniquindio.triage.domain.model.Identification;
+import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
 import co.edu.uniquindio.triage.domain.model.User;
 import co.edu.uniquindio.triage.domain.model.Username;
 import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.UserPersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.UserJpaRepository;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.specification.UserJpaSpecification;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.support.MariaDbUniqueViolation;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -113,7 +116,33 @@ public class UserPersistenceAdapter implements LoadUserAuthPort, SaveUserPort, L
 
     @Override
     public User save(User user) {
-        var entity = userPersistenceMapper.toEntity(user);
-        return userPersistenceMapper.toDomain(userJpaRepository.save(entity));
+        try {
+            var entity = userPersistenceMapper.toEntity(user);
+            return userPersistenceMapper.toDomain(userJpaRepository.saveAndFlush(entity));
+        } catch (DataIntegrityViolationException ex) {
+            if (MariaDbUniqueViolation.isUniqueViolation(ex)) {
+                throw translateUserDuplicate(ex);
+            }
+            throw ex;
+        }
+    }
+
+    private DuplicateUserException translateUserDuplicate(DataIntegrityViolationException ex) {
+        var details = MariaDbUniqueViolation.parseDuplicateEntry(ex);
+        if (details.isEmpty()) {
+            return new DuplicateUserException("registro", "duplicado");
+        }
+        var value = details.get().value();
+        var key = details.get().indexName().toLowerCase();
+        if (key.contains("username")) {
+            return new DuplicateUserException("username", value);
+        }
+        if (key.contains("email")) {
+            return new DuplicateUserException("email", value);
+        }
+        if (key.contains("identification")) {
+            return new DuplicateUserException("identification", value);
+        }
+        return new DuplicateUserException("registro", value);
     }
 }

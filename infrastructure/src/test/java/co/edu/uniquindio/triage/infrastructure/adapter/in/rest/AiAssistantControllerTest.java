@@ -80,10 +80,29 @@ class AiAssistantControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
                         .with(staffAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"description\": \"Necesito un cupo\"}"))
+                        .content("{\"description\": \"Necesito un cupo académico\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.suggestedRequestType").value("Cupo"))
                 .andExpect(jsonPath("$.suggestedPriority").value("HIGH"));
+    }
+
+    @Test
+    void suggestClassification_WhenDescriptionTooShort_ShouldReturn400() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"description\": \"corto\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void suggestClassification_WhenDescriptionTooLong_ShouldReturn400() throws Exception {
+        var body = "{\"description\": \"" + "z".repeat(2001) + "\"}";
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
+                        .with(staffAuthentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -91,7 +110,7 @@ class AiAssistantControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
                         .with(studentAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"description\": \"Necesito un cupo\"}"))
+                        .content("{\"description\": \"Necesito un cupo académico\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -102,7 +121,7 @@ class AiAssistantControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
                         .with(staffAuthentication())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"description\": \"Necesito un cupo\"}"))
+                        .content("{\"description\": \"Necesito un cupo académico\"}"))
                 .andExpect(status().isServiceUnavailable());
     }
 

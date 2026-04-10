@@ -10,6 +10,7 @@ import co.edu.uniquindio.triage.domain.exception.InvalidStateTransitionException
 import co.edu.uniquindio.triage.domain.exception.RequestNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.common.FieldErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +78,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception) {
         return build(HttpStatus.BAD_REQUEST, exception.getMessage(), null);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<ProblemDetail> handleUnhandledDataIntegrity(DataIntegrityViolationException exception) {
+        return build(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "La operación no pudo completarse por una restricción de base de datos",
+                null);
     }
 
     private FieldErrorResponse toFieldError(FieldError fieldError) {
