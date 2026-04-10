@@ -1,0 +1,1482 @@
+{
+  "info": {
+    "_postman_id": "b5d6fe61-4c83-47e0-86d6-e89617dbe31f",
+    "name": "Academic Triage System API",
+    "description": "Colección Postman para cubrir el 100% de los endpoints REST documentados y expuestos por los controllers del proyecto (34 operaciones).\n\nSuposiciones verificadas:\n- Base URL local: http://localhost:8080/api/v1\n- En perfil dev existe admin local `admin` / `admin123` (README + migraciones en db/migration-dev).\n- Los endpoints de AI pueden responder 200 o 503 porque la IA es opcional y está deshabilitada por defecto (OpenAPI + AGENTS.md).\n\nOrden de ejecución recomendado: correr la colección de arriba hacia abajo para que los IDs y tokens se vayan guardando automáticamente en variables de colección.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "adminUsername", "value": "admin" },
+    { "key": "adminPassword", "value": "admin123" },
+    { "key": "adminToken", "value": "" },
+    { "key": "adminUserId", "value": "" },
+    { "key": "studentUsername", "value": "" },
+    { "key": "studentPassword", "value": "Student123!" },
+    { "key": "studentEmail", "value": "" },
+    { "key": "studentIdentification", "value": "" },
+    { "key": "studentToken", "value": "" },
+    { "key": "studentUserId", "value": "" },
+    { "key": "staffUsername", "value": "" },
+    { "key": "staffPassword", "value": "Staff123!" },
+    { "key": "staffEmail", "value": "" },
+    { "key": "staffIdentification", "value": "" },
+    { "key": "staffToken", "value": "" },
+    { "key": "staffUserId", "value": "" },
+    { "key": "requestTypeName", "value": "" },
+    { "key": "updatedRequestTypeName", "value": "" },
+    { "key": "createdRequestTypeId", "value": "" },
+    { "key": "originChannelName", "value": "" },
+    { "key": "updatedOriginChannelName", "value": "" },
+    { "key": "createdOriginChannelId", "value": "" },
+    { "key": "businessRuleName", "value": "" },
+    { "key": "updatedBusinessRuleName", "value": "" },
+    { "key": "createdBusinessRuleId", "value": "" },
+    { "key": "requestDeadline", "value": "" },
+    { "key": "requestCloseId", "value": "" },
+    { "key": "requestCancelId", "value": "" },
+    { "key": "requestRejectId", "value": "" },
+    { "key": "historyNoteId", "value": "" },
+    { "key": "updatedStaffEmail", "value": "" },
+    { "key": "updatedStaffIdentification", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Auth y bootstrap",
+      "item": [
+        {
+          "name": "Login admin local",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', data.token);",
+                  "pm.collectionVariables.set('adminUserId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Autentica el admin de desarrollo y guarda adminToken/adminUserId."
+          }
+        },
+        {
+          "name": "Register student (público)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "pm.collectionVariables.set('studentUsername', `student_${suffix}`);",
+                  "pm.collectionVariables.set('studentEmail', `student_${suffix}@example.com`);",
+                  "pm.collectionVariables.set('studentIdentification', suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('studentUserId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"firstName\": \"Estudiante\",\n  \"lastName\": \"Postman\",\n  \"identification\": \"{{studentIdentification}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Crea un STUDENT sin autenticación."
+          }
+        },
+        {
+          "name": "Login student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('studentToken', data.token);",
+                  "pm.collectionVariables.set('studentUserId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register staff (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = (Date.now() + 1).toString();",
+                  "pm.collectionVariables.set('staffUsername', `staff_${suffix}`);",
+                  "pm.collectionVariables.set('staffEmail', `staff_${suffix}@example.com`);",
+                  "pm.collectionVariables.set('staffIdentification', suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('staffUserId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"{{staffPassword}}\",\n  \"firstName\": \"Staff\",\n  \"lastName\": \"Postman\",\n  \"identification\": \"{{staffIdentification}}\",\n  \"role\": \"STAFF\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Crea un usuario STAFF usando el admin autenticado."
+          }
+        },
+        {
+          "name": "Login staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('staffToken', data.token);",
+                  "pm.collectionVariables.set('staffUserId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Catálogos",
+      "item": [
+        {
+          "name": "List request types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/request-types?active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "request-types"],
+              "query": [
+                { "key": "active", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create request type",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "pm.collectionVariables.set('requestTypeName', `Tipo Postman ${suffix}`);",
+                  "pm.collectionVariables.set('updatedRequestTypeName', `Tipo Postman ${suffix} Actualizado`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('createdRequestTypeId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{requestTypeName}}\",\n  \"description\": \"Tipo generado automáticamente desde Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/request-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "request-types"]
+            }
+          }
+        },
+        {
+          "name": "Get request type by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/request-types/{{createdRequestTypeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "request-types", "{{createdRequestTypeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update request type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{updatedRequestTypeName}}\",\n  \"description\": \"Tipo actualizado automáticamente desde Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/request-types/{{createdRequestTypeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "request-types", "{{createdRequestTypeId}}"]
+            }
+          }
+        },
+        {
+          "name": "List origin channels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/origin-channels?active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "origin-channels"],
+              "query": [
+                { "key": "active", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create origin channel",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "pm.collectionVariables.set('originChannelName', `Canal Postman ${suffix}`);",
+                  "pm.collectionVariables.set('updatedOriginChannelName', `Canal Postman ${suffix} Actualizado`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('createdOriginChannelId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{originChannelName}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/origin-channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "origin-channels"]
+            }
+          }
+        },
+        {
+          "name": "Get origin channel by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/origin-channels/{{createdOriginChannelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "origin-channels", "{{createdOriginChannelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update origin channel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{updatedOriginChannelName}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/origin-channels/{{createdOriginChannelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogs", "origin-channels", "{{createdOriginChannelId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Business rules",
+      "item": [
+        {
+          "name": "List business rules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business-rules?active=true&conditionType=REQUEST_TYPE",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-rules"],
+              "query": [
+                { "key": "active", "value": "true" },
+                { "key": "conditionType", "value": "REQUEST_TYPE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create business rule",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "pm.collectionVariables.set('businessRuleName', `Regla Postman ${suffix}`);",
+                  "pm.collectionVariables.set('updatedBusinessRuleName', `Regla Postman ${suffix} Actualizada`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('createdBusinessRuleId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{businessRuleName}}\",\n  \"description\": \"Regla creada automáticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"HIGH\",\n  \"requestTypeId\": {{createdRequestTypeId}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business-rules",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-rules"]
+            }
+          }
+        },
+        {
+          "name": "Get business rule by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-rules", "{{createdBusinessRuleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update business rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{updatedBusinessRuleName}}\",\n  \"description\": \"Regla actualizada automáticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"MEDIUM\",\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-rules", "{{createdBusinessRuleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Deactivate business rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-rules", "{{createdBusinessRuleId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Requests e history",
+      "item": [
+        {
+          "name": "Create request for close flow",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const deadline = new Date();",
+                  "deadline.setDate(deadline.getDate() + 5);",
+                  "pm.collectionVariables.set('requestDeadline', deadline.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('requestCloseId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para recorrer el flujo completo de clasificación, priorización, asignación, atención y cierre.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"]
+            }
+          }
+        },
+        {
+          "name": "Create request for cancel flow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('requestCancelId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para probar la cancelación por parte del estudiante.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"]
+            }
+          }
+        },
+        {
+          "name": "Create request for reject flow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('requestRejectId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para probar el rechazo administrativo desde estado REGISTERED.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"]
+            }
+          }
+        },
+        {
+          "name": "List requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests?page=0&size=20&sort=registrationDateTime,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "registrationDateTime,desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get priority suggestion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/priority-suggestion",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "priority-suggestion"]
+            }
+          }
+        },
+        {
+          "name": "Classify request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"observations\": \"Clasificación hecha desde la colección Postman.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/classify",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "classify"]
+            }
+          }
+        },
+        {
+          "name": "Prioritize request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"HIGH\",\n  \"justification\": \"Priorización manual ejecutada desde Postman para validar el endpoint.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/prioritize",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "prioritize"]
+            }
+          }
+        },
+        {
+          "name": "Assign request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedToUserId\": {{staffUserId}},\n  \"observations\": \"Asignación automática al staff creado por la colección.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "assign"]
+            }
+          }
+        },
+        {
+          "name": "Add history note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('historyNoteId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observations\": \"Nota interna agregada desde la colección Postman.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "history"]
+            }
+          }
+        },
+        {
+          "name": "Get request history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "history"]
+            }
+          }
+        },
+        {
+          "name": "Attend request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observations\": \"Atención registrada desde Postman con resolución favorable.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/attend",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "attend"]
+            }
+          }
+        },
+        {
+          "name": "Close request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"closingObservation\": \"Cierre ejecutado desde Postman luego de completar todo el flujo operativo.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}/close",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}", "close"]
+            }
+          }
+        },
+        {
+          "name": "Get request by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCloseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCloseId}}"]
+            },
+            "description": "Consulta el detalle con el token del STUDENT dueño de la solicitud."
+          }
+        },
+        {
+          "name": "Cancel request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Ya no necesito la gestión y cancelo la solicitud desde Postman.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestCancelId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestCancelId}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Reject request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionReason\": \"Rechazo administrativo generado desde Postman para validar el endpoint.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/{{requestRejectId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "{{requestRejectId}}", "reject"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Users",
+      "item": [
+        {
+          "name": "List users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users?page=0&size=20&sort=username,asc&role=STAFF&active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "username,asc" },
+                { "key": "role", "value": "STAFF" },
+                { "key": "active", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get user by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{staffUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{staffUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = (Date.now() + 2).toString();",
+                  "pm.collectionVariables.set('updatedStaffEmail', `staff_updated_${suffix}@example.com`);",
+                  "pm.collectionVariables.set('updatedStaffIdentification', suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Staff Actualizado\",\n  \"lastName\": \"Postman QA\",\n  \"identification\": \"{{updatedStaffIdentification}}\",\n  \"email\": \"{{updatedStaffEmail}}\",\n  \"role\": \"STAFF\",\n  \"active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{staffUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{staffUserId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - AI assistant",
+      "item": [
+        {
+          "name": "Suggest classification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 503', function () { pm.expect([200, 503]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Necesito cancelar una asignatura porque tengo choque de horario con otra materia obligatoria y el plazo vence pronto.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai/suggest-classification",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "suggest-classification"]
+            },
+            "description": "Acepta 503 porque la IA es opcional por diseño."
+          }
+        },
+        {
+          "name": "Summarize request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 503', function () { pm.expect([200, 503]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai/summarize/{{requestCloseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "summarize", "{{requestCloseId}}"]
+            },
+            "description": "Acepta 503 porque la IA es opcional por diseño."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Reports",
+      "item": [
+        {
+          "name": "Get dashboard metrics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reports/dashboard?dateFrom=2026-01-01&dateTo=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "dashboard"],
+              "query": [
+                { "key": "dateFrom", "value": "2026-01-01" },
+                { "key": "dateTo", "value": "2026-12-31" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

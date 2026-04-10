@@ -250,7 +250,9 @@ Bring up the full local stack:
 docker-compose up --build -d
 ```
 
-El servicio `app` usa por defecto `SPRING_PROFILES_ACTIVE=dev`, así que Flyway aplica también `db/migration-dev` y queda disponible el **administrador local de desarrollo** (`admin` / `admin123`, hash en migración). Eso no forma parte del baseline “solo `db/migration`”: no lo habilités en entornos compartidos.
+El servicio `app` usa por defecto `SPRING_PROFILES_ACTIVE=dev`, así que Flyway aplica también `db/migration-dev` y queda disponible el **administrador local de desarrollo** (`admin` / `admin123`). Eso no forma parte del baseline “solo `db/migration`”: no lo habilités en entornos compartidos.
+
+Si ya tenías una imagen previa levantada, volvés a correr `docker-compose up --build -d` y Flyway aplica la migración dev pendiente para alinear esas credenciales locales.
 
 Check container status:
 
