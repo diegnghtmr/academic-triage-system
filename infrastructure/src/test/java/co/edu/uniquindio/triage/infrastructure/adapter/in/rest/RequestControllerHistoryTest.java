@@ -16,6 +16,7 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.AddIn
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.request.HistoryEntryResponse;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -91,11 +93,16 @@ class RequestControllerHistoryTest {
     @MockitoBean private RejectRequestUseCase rejectRequestUseCase;
     @MockitoBean private ListRequestsQuery listRequestsQuery;
     
-    @MockitoBean 
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
+    @MockitoBean
     private RequestRestMapper requestRestMapper;
 
     @BeforeEach
     void setUp() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
         when(requestRestMapper.toDetailQuery(anyLong())).thenAnswer(inv -> {
             Long id = inv.getArgument(0);
             return new GetRequestDetailQueryModel(new RequestId(id));

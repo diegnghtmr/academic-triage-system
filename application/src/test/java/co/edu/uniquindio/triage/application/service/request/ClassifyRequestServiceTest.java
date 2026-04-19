@@ -3,6 +3,7 @@ package co.edu.uniquindio.triage.application.service.request;
 import co.edu.uniquindio.triage.application.port.in.auth.AuthenticatedActor;
 import co.edu.uniquindio.triage.application.port.in.command.request.ClassifyRequestCommand;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestForMutationPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
@@ -160,12 +161,17 @@ class ClassifyRequestServiceTest {
         );
     }
 
-    private static final class StubLoadRequestPort implements LoadRequestPort {
+    private static final class StubLoadRequestPort implements LoadRequestPort, LoadRequestForMutationPort {
         private final Map<Long, AcademicRequest> requests = new HashMap<>();
 
         @Override
         public Optional<AcademicRequest> loadById(RequestId requestId) {
             return Optional.ofNullable(requests.get(requestId.value()));
+        }
+
+        @Override
+        public Optional<AcademicRequest> loadByIdForMutation(RequestId requestId) {
+            return loadById(requestId);
         }
 
         @Override

@@ -2,6 +2,7 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
 import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
+import co.edu.uniquindio.triage.application.port.in.user.GetUserVersionUseCase;
 import co.edu.uniquindio.triage.application.port.in.user.GetUsersQuery;
 import co.edu.uniquindio.triage.application.port.in.user.UpdateUserUseCase;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
@@ -18,6 +19,7 @@ import co.edu.uniquindio.triage.domain.model.id.UserId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.ETagSupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import org.junit.jupiter.api.DisplayName;
@@ -83,6 +85,9 @@ class UserControllerTest {
 
     @MockitoBean
     private UpdateUserUseCase updateUserUseCase;
+
+    @MockitoBean
+    private GetUserVersionUseCase getUserVersionUseCase;
 
     @Nested
     @DisplayName("GET /api/v1/users — Listar usuarios paginados")
@@ -257,10 +262,12 @@ class UserControllerTest {
         @DisplayName("Debe retornar 200 con el usuario actualizado cuando el actor es ADMIN")
         void mustReturn200WithUpdatedUserWhenAdmin() throws Exception {
             var updatedUser = sampleUser(5L, "maria", Role.STAFF);
+            given(getUserVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
             given(updateUserUseCase.execute(any(), any())).willReturn(updatedUser);
 
             mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/users/{id}", 5)
                             .with(adminAuthentication())
+                            .header(HttpHeaders.IF_MATCH, "\"1\"")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -360,11 +367,13 @@ class UserControllerTest {
         @Test
         @DisplayName("Debe retornar 409 cuando el caso de uso lanza BusinessRuleViolationException (auto-mutación)")
         void mustReturn409WhenSelfMutationGuardTriggered() throws Exception {
+            given(getUserVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
             given(updateUserUseCase.execute(any(), any()))
                     .willThrow(new BusinessRuleViolationException("Un administrador no puede modificar su propio usuario"));
 
             mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/users/{id}", 99)
                             .with(adminAuthentication())
+                            .header(HttpHeaders.IF_MATCH, "\"1\"")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -385,11 +394,13 @@ class UserControllerTest {
         @Test
         @DisplayName("Debe retornar 404 cuando el caso de uso no encuentra el usuario a actualizar")
         void mustReturn404WhenUserToUpdateDoesNotExist() throws Exception {
+            given(getUserVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
             given(updateUserUseCase.execute(any(), any()))
                     .willThrow(new EntityNotFoundException("User", "id", 999L));
 
             mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/users/{id}", 999)
                             .with(adminAuthentication())
+                            .header(HttpHeaders.IF_MATCH, "\"1\"")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -452,6 +463,11 @@ class UserControllerTest {
         @Bean
         AuthenticatedActorMapper authenticatedActorMapper() {
             return new AuthenticatedActorMapper();
+        }
+
+        @Bean
+        ETagSupport eTagSupport() {
+            return new ETagSupport();
         }
     }
 

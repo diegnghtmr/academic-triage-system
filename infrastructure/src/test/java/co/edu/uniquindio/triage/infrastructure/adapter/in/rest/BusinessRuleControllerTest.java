@@ -1,5 +1,6 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 
+import co.edu.uniquindio.triage.application.exception.MissingIdempotencyKeyException;
 import co.edu.uniquindio.triage.application.port.in.businessrule.*;
 import co.edu.uniquindio.triage.application.port.in.command.businessrule.DeactivateBusinessRuleCommand;
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
@@ -13,9 +14,12 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.BusinessRuleRestM
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
 import co.edu.uniquindio.triage.domain.model.RequestType;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRestMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.ETagSupport;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -37,7 +41,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -82,6 +88,18 @@ class BusinessRuleControllerTest {
 
     @MockitoBean
     private DeactivateBusinessRuleUseCase deactivateBusinessRuleUseCase;
+
+    @MockitoBean
+    private GetBusinessRuleVersionUseCase getBusinessRuleVersionUseCase;
+
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
+    @BeforeEach
+    void configureIdempotencyPassThrough() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
+    }
 
     @Test
     void listRulesMustReturn200ForAdmin() throws Exception {
@@ -142,8 +160,11 @@ class BusinessRuleControllerTest {
 
     @Test
     void updateMustReturn400WhenConditionTypeIsLegacyImpactLevel() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(0L));
+
         mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
                         .with(authentication(Role.ADMIN))
+                        .header("If-Match", "\"0\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -303,9 +324,11 @@ class BusinessRuleControllerTest {
     void updateMustReturn200WhenValid() throws Exception {
         var rule = sampleRule(1L, "Updated Rule");
         given(updateBusinessRuleUseCase.update(any())).willReturn(new BusinessRuleView(rule, null));
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(0L));
 
         mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
                         .with(authentication(Role.ADMIN))
+                        .header("If-Match", "\"0\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -324,8 +347,11 @@ class BusinessRuleControllerTest {
 
     @Test
     void deleteMustReturn204() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(0L));
+
         mockMvc.perform(delete("/api/v1/business-rules/{id}", 1)
-                        .with(authentication(Role.ADMIN)))
+                        .with(authentication(Role.ADMIN))
+                        .header("If-Match", "\"0\""))
                 .andExpect(status().isNoContent());
 
         verify(deactivateBusinessRuleUseCase).deactivate(any());
@@ -362,6 +388,126 @@ class BusinessRuleControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void getByIdMustEmitETagHeaderWhenVersionExists() throws Exception {
+        var rule = sampleRule(1L, "Rule 1");
+        given(getBusinessRuleQueryUseCase.getById(new BusinessRuleId(1L))).willReturn(Optional.of(new BusinessRuleView(rule, null)));
+        given(getBusinessRuleVersionUseCase.getVersionById(new BusinessRuleId(1L))).willReturn(Optional.of(7L));
+
+        mockMvc.perform(get("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"7\""));
+    }
+
+    @Test
+    void updateMustReturn428WhenIfMatchHeaderIsMissing() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(3L));
+
+        mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Rule",
+                                  "description": "Desc",
+                                  "conditionType": "REQUEST_TYPE",
+                                  "conditionValue": "1",
+                                  "resultingPriority": "HIGH",
+                                  "active": true
+                                }
+                                """))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(jsonPath("$.status").value(428));
+    }
+
+    @Test
+    void updateMustReturn412WhenVersionMismatch() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(5L));
+
+        mockMvc.perform(put("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN))
+                        .header("If-Match", "\"3\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Rule",
+                                  "description": "Desc",
+                                  "conditionType": "REQUEST_TYPE",
+                                  "conditionValue": "1",
+                                  "resultingPriority": "HIGH",
+                                  "active": true
+                                }
+                                """))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.status").value(412));
+    }
+
+    @Test
+    void deleteMustReturn428WhenIfMatchHeaderIsMissing() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(3L));
+
+        mockMvc.perform(delete("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN)))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(jsonPath("$.status").value(428));
+    }
+
+    @Test
+    void deleteMustReturn412WhenVersionMismatch() throws Exception {
+        given(getBusinessRuleVersionUseCase.getVersionById(any())).willReturn(Optional.of(5L));
+
+        mockMvc.perform(delete("/api/v1/business-rules/{id}", 1)
+                        .with(authentication(Role.ADMIN))
+                        .header("If-Match", "\"3\""))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.status").value(412));
+    }
+
+    @Test
+    void createMustReturn400WhenIdempotencyKeyIsMissing() throws Exception {
+        org.mockito.Mockito.reset(httpIdempotencySupport);
+        given(httpIdempotencySupport.execute(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willThrow(new MissingIdempotencyKeyException());
+
+        mockMvc.perform(post("/api/v1/business-rules")
+                        .with(authentication(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "New Rule",
+                                  "description": "A new rule",
+                                  "conditionType": "REQUEST_TYPE",
+                                  "conditionValue": "1",
+                                  "resultingPriority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void createMustReturn422WhenFingerprintMismatch() throws Exception {
+        org.mockito.Mockito.reset(httpIdempotencySupport);
+        given(httpIdempotencySupport.execute(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willThrow(new co.edu.uniquindio.triage.application.exception.IdempotencyFingerprintMismatchException());
+
+        mockMvc.perform(post("/api/v1/business-rules")
+                        .with(authentication(Role.ADMIN))
+                        .header("Idempotency-Key", "key-br-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Regla diferente al original",
+                                  "conditionType": "DEADLINE",
+                                  "conditionValue": "5",
+                                  "resultingPriority": "LOW"
+                                }
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422));
+    }
+
     private BusinessRule sampleRule(Long id, String name) {
         return BusinessRule.reconstitute(
                 new BusinessRuleId(id),
@@ -391,6 +537,11 @@ class BusinessRuleControllerTest {
         @Bean
         BusinessRuleRestMapper businessRuleRestMapper(CatalogRestMapper catalogRestMapper) {
             return new BusinessRuleRestMapper(catalogRestMapper);
+        }
+
+        @Bean
+        ETagSupport eTagSupport() {
+            return new ETagSupport();
         }
     }
 

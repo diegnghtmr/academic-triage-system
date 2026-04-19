@@ -13,9 +13,11 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.AiRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -39,6 +41,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,6 +74,15 @@ class AiAssistantControllerTest {
 
     @MockitoBean
     private GenerateSummaryUseCase generateSummaryUseCase;
+
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
+    @BeforeEach
+    void configureIdempotencyPassThrough() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
+    }
 
     @Test
     void suggestClassification_WhenStaff_ShouldReturn200() throws Exception {
@@ -161,6 +173,35 @@ class AiAssistantControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/ai/summarize/100")
                         .with(adminAuthentication()))
                 .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void suggestClassification_MustReturn400WhenIdempotencyKeyIsMissing() throws Exception {
+        org.mockito.Mockito.reset(httpIdempotencySupport);
+        given(httpIdempotencySupport.execute(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willThrow(new co.edu.uniquindio.triage.application.exception.MissingIdempotencyKeyException());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
+                        .with(staffAuthentication())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"Necesito un cupo adicional en la materia de programación\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void suggestClassification_MustReturn422WhenFingerprintMismatch() throws Exception {
+        org.mockito.Mockito.reset(httpIdempotencySupport);
+        given(httpIdempotencySupport.execute(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willThrow(new co.edu.uniquindio.triage.application.exception.IdempotencyFingerprintMismatchException());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/ai/suggest-classification")
+                        .with(staffAuthentication())
+                        .header("Idempotency-Key", "key-ai-001")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"Descripción distinta al payload original enviado\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422));
     }
 
     private RequestPostProcessor adminAuthentication() {

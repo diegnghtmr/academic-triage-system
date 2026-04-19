@@ -47,8 +47,10 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRes
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.RequestRestMapperImpl;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -76,6 +78,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -141,6 +144,15 @@ class RequestControllerTest {
 
     @MockitoBean
     private AddInternalNoteUseCase addInternalNoteUseCase;
+
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
+    @BeforeEach
+    void configureIdempotencyPassThrough() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
+    }
 
     @Test
     void createMustReturn201WithLocationAndResponseBody() throws Exception {

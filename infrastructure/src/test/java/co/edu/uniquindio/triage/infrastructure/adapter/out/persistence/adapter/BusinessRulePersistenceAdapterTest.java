@@ -170,7 +170,7 @@ class BusinessRulePersistenceAdapterTest {
                 .resultingPriority(Priority.MEDIUM.name())
                 .active(active);
         if (conditionType == ConditionType.REQUEST_TYPE || conditionType == ConditionType.REQUEST_TYPE_AND_DEADLINE) {
-            var rt = RequestTypeJpaEntity.builder().id(1L).build();
+            var rt = RequestTypeJpaEntity.builder().id(1L).version(0L).build();
             builder.requestType(rt);
         }
         return builder.build();

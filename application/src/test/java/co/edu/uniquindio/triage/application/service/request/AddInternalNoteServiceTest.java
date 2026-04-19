@@ -3,6 +3,7 @@ package co.edu.uniquindio.triage.application.service.request;
 import co.edu.uniquindio.triage.application.port.in.command.request.AddInternalNoteCommand;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestHistoryDetail;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestForMutationPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
 import co.edu.uniquindio.triage.domain.enums.HistoryAction;
@@ -36,13 +37,16 @@ class AddInternalNoteServiceTest {
     private LoadRequestPort loadRequestPort;
 
     @Mock
+    private LoadRequestForMutationPort loadRequestForMutationPort;
+
+    @Mock
     private SaveRequestPort saveRequestPort;
 
     private AddInternalNoteService service;
 
     @BeforeEach
     void setUp() {
-        service = new AddInternalNoteService(loadRequestPort, saveRequestPort);
+        service = new AddInternalNoteService(loadRequestForMutationPort, loadRequestPort, saveRequestPort);
     }
 
     @Test
@@ -56,7 +60,7 @@ class AddInternalNoteServiceTest {
         var request = createSampleRequest(requestId);
         var performer = sampleUser(performedById.value(), "staff1", Role.STAFF);
         
-        when(loadRequestPort.loadById(requestId)).thenReturn(Optional.of(request));
+        when(loadRequestForMutationPort.loadByIdForMutation(requestId)).thenReturn(Optional.of(request));
         
         // Mocking the reload of detail
         var detail = createSampleDetail(requestId, performer, note);
@@ -83,7 +87,7 @@ class AddInternalNoteServiceTest {
         // GIVEN
         var requestId = new RequestId(1L);
         var command = new AddInternalNoteCommand(requestId, "Note", new UserId(2L));
-        when(loadRequestPort.loadById(requestId)).thenReturn(Optional.empty());
+        when(loadRequestForMutationPort.loadByIdForMutation(requestId)).thenReturn(Optional.empty());
 
         // WHEN / THEN
         assertThatThrownBy(() -> service.addInternalNote(command))

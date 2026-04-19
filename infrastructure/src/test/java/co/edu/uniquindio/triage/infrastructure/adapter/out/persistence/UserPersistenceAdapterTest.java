@@ -167,7 +167,8 @@ class UserPersistenceAdapterTest {
                 "Base",
                 Role.STUDENT.name(),
                 true,
-                "hashed-password"
+                "hashed-password",
+                null
         );
     }
 

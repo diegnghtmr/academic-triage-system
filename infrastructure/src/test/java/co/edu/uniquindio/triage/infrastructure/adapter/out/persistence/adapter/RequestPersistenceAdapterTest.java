@@ -781,7 +781,8 @@ class RequestPersistenceAdapterTest {
                 "Apellido",
                 role.name(),
                 true,
-                "hashed-password"
+                "hashed-password",
+                null
         );
         var saved = userJpaRepository.saveAndFlush(entity);
         return User.reconstitute(

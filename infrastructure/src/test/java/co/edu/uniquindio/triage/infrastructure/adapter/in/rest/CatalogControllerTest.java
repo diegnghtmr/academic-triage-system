@@ -3,7 +3,9 @@ package co.edu.uniquindio.triage.infrastructure.adapter.in.rest;
 import co.edu.uniquindio.triage.application.port.in.catalog.CreateOriginChannelUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.CreateRequestTypeUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.GetOriginChannelQuery;
+import co.edu.uniquindio.triage.application.port.in.catalog.GetOriginChannelVersionUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.GetRequestTypeQuery;
+import co.edu.uniquindio.triage.application.port.in.catalog.GetRequestTypeVersionUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.ListOriginChannelsQuery;
 import co.edu.uniquindio.triage.application.port.in.catalog.ListRequestTypesQuery;
 import co.edu.uniquindio.triage.application.port.in.catalog.UpdateOriginChannelUseCase;
@@ -18,9 +20,12 @@ import co.edu.uniquindio.triage.domain.model.id.RequestTypeId;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.advice.GlobalExceptionHandler;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.CatalogRestMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.ETagSupport;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import co.edu.uniquindio.triage.infrastructure.testsupport.NoopLoadUserAuthPortTestConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -44,10 +49,12 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -105,6 +112,21 @@ class CatalogControllerTest {
 
     @MockitoBean
     private UpdateOriginChannelUseCase updateOriginChannelUseCase;
+
+    @MockitoBean
+    private GetRequestTypeVersionUseCase getRequestTypeVersionUseCase;
+
+    @MockitoBean
+    private GetOriginChannelVersionUseCase getOriginChannelVersionUseCase;
+
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
+    @BeforeEach
+    void configureIdempotencyPassThrough() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
+    }
 
     @Test
     void listRequestTypesMustReturn200AndDefaultActiveFilterToTrue() throws Exception {
@@ -238,11 +260,13 @@ class CatalogControllerTest {
 
     @Test
     void updateRequestTypeMustReturn409WhenNameIsDuplicated() throws Exception {
+        given(getRequestTypeVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
         given(updateRequestTypeUseCase.execute(any(), any()))
                 .willThrow(new DuplicateCatalogEntryException("tipo de solicitud", "Reintegro"));
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/catalogs/request-types/{typeId}", 21L)
                         .with(adminAuthentication())
+                        .header(HttpHeaders.IF_MATCH, "\"1\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -257,12 +281,14 @@ class CatalogControllerTest {
 
     @Test
     void updateRequestTypeMustReturn200AndBindCommand() throws Exception {
+        given(getRequestTypeVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
         given(updateRequestTypeUseCase.execute(any(), any())).willReturn(
                 new RequestType(new RequestTypeId(21L), "Reintegro actualizado", "Solicitud actualizada", true)
         );
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/catalogs/request-types/{typeId}", 21L)
                         .with(adminAuthentication())
+                        .header(HttpHeaders.IF_MATCH, "\"1\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -433,11 +459,13 @@ class CatalogControllerTest {
 
     @Test
     void updateOriginChannelMustReturn409WhenNameIsDuplicated() throws Exception {
+        given(getOriginChannelVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
         given(updateOriginChannelUseCase.execute(any(), any()))
                 .willThrow(new DuplicateCatalogEntryException("canal de origen", "Correo"));
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/catalogs/origin-channels/{channelId}", 8L)
                         .with(adminAuthentication())
+                        .header(HttpHeaders.IF_MATCH, "\"1\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -451,12 +479,14 @@ class CatalogControllerTest {
 
     @Test
     void updateOriginChannelMustReturn200AndBindCommand() throws Exception {
+        given(getOriginChannelVersionUseCase.getVersionById(any())).willReturn(Optional.of(1L));
         given(updateOriginChannelUseCase.execute(any(), any())).willReturn(
                 new OriginChannel(new OriginChannelId(8L), "Llamada institucional", true)
         );
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/catalogs/origin-channels/{channelId}", 8L)
                         .with(adminAuthentication())
+                        .header(HttpHeaders.IF_MATCH, "\"1\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -554,6 +584,11 @@ class CatalogControllerTest {
         @Bean
         AuthenticatedActorMapper authenticatedActorMapper() {
             return new AuthenticatedActorMapper();
+        }
+
+        @Bean
+        ETagSupport eTagSupport() {
+            return new ETagSupport();
         }
     }
 
