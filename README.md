@@ -363,7 +363,7 @@ This backend implements strict idempotency and concurrency controls to prevent d
 - **PUT / DELETE (Updates):** Fetch the resource first to get the `ETag` header. Send that value back in the `If-Match` header to update. If someone else updated the resource in the meantime, you will get a `412 Precondition Failed`.
 - **AI Cache:** AI summary generation is cached based on the data version (`ETag`). Re-requesting the same summary is instant.
 
-For detailed semantics, error codes, and accepted risks, see [docs/idempotency-backend-final.md](docs/idempotency-backend-final.md).
+Detailed request/response contracts live in [docs/openapi-academic-triage.yaml](docs/openapi-academic-triage.yaml). Operational validation examples are available in `scripts/smoke-concurrency-idempotency.sh` and `scripts/audit-idempotency.sql`.
 
 ---
 
