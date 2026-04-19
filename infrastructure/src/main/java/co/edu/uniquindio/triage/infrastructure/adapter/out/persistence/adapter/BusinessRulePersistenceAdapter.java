@@ -1,10 +1,14 @@
 package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.adapter;
 
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRulePort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRuleVersionPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveBusinessRulePort;
 import co.edu.uniquindio.triage.domain.enums.ConditionType;
+import co.edu.uniquindio.triage.domain.exception.EntityNotFoundException;
 import co.edu.uniquindio.triage.domain.model.BusinessRule;
 import co.edu.uniquindio.triage.domain.model.id.BusinessRuleId;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.BusinessRuleJpaEntity;
+import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.RequestTypeJpaEntity;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.mapper.BusinessRulePersistenceMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.repository.BusinessRuleJpaRepository;
 import org.springframework.stereotype.Component;
@@ -14,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-class BusinessRulePersistenceAdapter implements LoadBusinessRulePort, SaveBusinessRulePort {
+class BusinessRulePersistenceAdapter implements LoadBusinessRulePort, SaveBusinessRulePort, LoadBusinessRuleVersionPort {
 
     private final BusinessRuleJpaRepository businessRuleJpaRepository;
     private final BusinessRulePersistenceMapper businessRulePersistenceMapper;
@@ -62,8 +66,42 @@ class BusinessRulePersistenceAdapter implements LoadBusinessRulePort, SaveBusine
 
     @Override
     public BusinessRule save(BusinessRule businessRule) {
-        var entity = businessRulePersistenceMapper.toEntity(businessRule);
+        BusinessRuleJpaEntity entity;
+        if (businessRule.getId() != null) {
+            // Update-in-place: preserves @Version so optimistic locking is enforced correctly
+            entity = businessRuleJpaRepository.findById(businessRule.getId().value())
+                    .orElseThrow(() -> new EntityNotFoundException("Regla de negocio", "id", businessRule.getId().value()));
+            applyDomainToEntity(businessRule, entity);
+        } else {
+            entity = businessRulePersistenceMapper.toEntity(businessRule);
+        }
         var saved = businessRuleJpaRepository.save(entity);
         return businessRulePersistenceMapper.toDomain(saved);
+    }
+
+    private void applyDomainToEntity(BusinessRule rule, BusinessRuleJpaEntity entity) {
+        entity.setName(rule.getName());
+        entity.setDescription(rule.getDescription());
+        if (rule.getConditionType() != null) {
+            entity.setConditionType(rule.getConditionType().name());
+        }
+        entity.setConditionValue(rule.getConditionValue());
+        if (rule.getResultingPriority() != null) {
+            entity.setResultingPriority(rule.getResultingPriority().name());
+        }
+        entity.setActive(rule.isActive());
+        if (rule.getRequestTypeId() != null) {
+            var rt = new RequestTypeJpaEntity();
+            rt.setId(rule.getRequestTypeId().value());
+            entity.setRequestType(rt);
+        } else {
+            entity.setRequestType(null);
+        }
+    }
+
+    @Override
+    public Optional<Long> findVersionById(BusinessRuleId id) {
+        return businessRuleJpaRepository.findById(id.value())
+                .map(BusinessRuleJpaEntity::getVersion);
     }
 }

@@ -35,7 +35,8 @@ public class UserPersistenceMapper {
                 user.getLastName(),
                 user.getRole().name(),
                 user.isActive(),
-                user.getPasswordHash().value()
+                user.getPasswordHash().value(),
+                null
         );
     }
 }

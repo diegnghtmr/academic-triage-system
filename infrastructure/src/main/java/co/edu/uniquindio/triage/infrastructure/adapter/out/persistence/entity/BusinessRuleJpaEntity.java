@@ -40,4 +40,8 @@ public class BusinessRuleJpaEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_type_id")
     private RequestTypeJpaEntity requestType;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

@@ -28,6 +28,10 @@ public class RequestTypeJpaEntity {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     public Long getId() {
         return id;
     }
@@ -58,5 +62,13 @@ public class RequestTypeJpaEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

@@ -39,6 +39,10 @@ public class UserJpaEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     public UserJpaEntity() {
     }
 
@@ -50,7 +54,8 @@ public class UserJpaEntity {
                          String lastName,
                          String role,
                          boolean active,
-                         String passwordHash) {
+                         String passwordHash,
+                         Long version) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -60,6 +65,7 @@ public class UserJpaEntity {
         this.role = role;
         this.active = active;
         this.passwordHash = passwordHash;
+        this.version = version;
     }
 
     public Long getId() {
@@ -132,5 +138,13 @@ public class UserJpaEntity {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }
