@@ -218,7 +218,7 @@ docker-compose up -d mariadb
 
 4. **Run the application**
 
-Activa el perfil `dev` para desarrollo local: carga documentación, secret JWT de desarrollo en `application-dev.yml` y la segunda ruta Flyway `classpath:db/migration-dev`, que **solo en local** vuelve a crear el usuario administrador de prueba documentado abajo.
+Activa el perfil `dev` para desarrollo local: carga documentación, secret JWT de desarrollo en `application-dev.yml` y la segunda ruta Flyway `classpath:db/migration-dev`, que **solo en local** vuelve a crear el usuario administrador de prueba documentado abajo y además carga un dataset demo rico para dashboards, reportes y flujos multi-rol.
 
 ```bash
 set -a
@@ -250,7 +250,12 @@ Bring up the full local stack:
 docker-compose up --build -d
 ```
 
-El servicio `app` usa por defecto `SPRING_PROFILES_ACTIVE=dev`, así que Flyway aplica también `db/migration-dev` y queda disponible el **administrador local de desarrollo** (`admin` / `admin123`). Eso no forma parte del baseline “solo `db/migration`”: no lo habilités en entornos compartidos.
+El servicio `app` usa por defecto `SPRING_PROFILES_ACTIVE=dev`, así que Flyway aplica también `db/migration-dev` y quedan disponibles el **administrador local de desarrollo** (`admin` / `admin123`) y un dataset demo local con usuarios `STAFF` / `STUDENT`, catálogos adicionales, reglas de negocio y solicitudes en varios estados. Eso no forma parte del baseline “solo `db/migration`”: no lo habilités en entornos compartidos.
+
+Credenciales locales de demo:
+
+- `admin` / `admin123`
+- usuarios demo (`staff_registro`, `staff_admisiones`, `staff_financiero`, `staff_bienestar`, `staff_homologa`, `ana_martinez`, `juan_perez`, etc.) / `admin123`
 
 Si ya tenías una imagen previa levantada, volvés a correr `docker-compose up --build -d` y Flyway aplica la migración dev pendiente para alinear esas credenciales locales.
 
@@ -350,6 +355,18 @@ This flow has been validated manually in Docker using OpenRouter.
 
 ---
 
+## Idempotency & Concurrency Quick Guide
+
+This backend implements strict idempotency and concurrency controls to prevent duplicate actions and lost updates.
+
+- **POST / PATCH (Create & Prioritize):** Send an `Idempotency-Key` header (UUID recommended). If you send the same key with the same payload, you will get the exact same response (`Idempotency-Status: replayed`) without creating duplicates. If you change the payload, you get a `422`.
+- **PUT / DELETE (Updates):** Fetch the resource first to get the `ETag` header. Send that value back in the `If-Match` header to update. If someone else updated the resource in the meantime, you will get a `412 Precondition Failed`.
+- **AI Cache:** AI summary generation is cached based on the data version (`ETag`). Re-requesting the same summary is instant.
+
+For detailed semantics, error codes, and accepted risks, see [docs/idempotency-backend-final.md](docs/idempotency-backend-final.md).
+
+---
+
 ## Testing
 
 ### Run the full test suite
@@ -367,6 +384,7 @@ Generate an aggregate JaCoCo report for all modules:
 ```
 
 Reports are available at:
+
 - **Aggregate (Root):** `build/reports/jacoco/root/html/index.html` (HTML) and `build/reports/jacoco/root/jacocoRootReport.xml` (XML)
 - **Per-module:** `{module}/build/reports/jacoco/test/html/index.html`
 
@@ -437,16 +455,16 @@ Authentication is JWT-based and stateless.
 
 ### Example permissions
 
-| Endpoint area               |     STUDENT |       STAFF |         ADMIN |
-| --------------------------- | ----------: | ----------: | ------------: |
-| Register / login            |          ✅ |          ✅ |            ✅ |
-| Create request              |          ✅ |          ✅ |            ❌ |
-| Request operational actions |          ❌ |          ✅ | role-specific |
-| AI suggest classification   |          ❌ |          ✅ |            ❌ |
-| AI summarize                |          ❌ |          ✅ |            ✅ |
-| Catalog management          |          ❌ |          ❌ |            ✅ |
-| User management             |          ❌ |          ❌ |            ✅ |
-| Dashboard / report metrics    |          ❌ |          ❌ |            ✅ |
+| Endpoint area               | STUDENT | STAFF |         ADMIN |
+| --------------------------- | ------: | ----: | ------------: |
+| Register / login            |      ✅ |    ✅ |            ✅ |
+| Create request              |      ✅ |    ✅ |            ❌ |
+| Request operational actions |      ❌ |    ✅ | role-specific |
+| AI suggest classification   |      ❌ |    ✅ |            ❌ |
+| AI summarize                |      ❌ |    ✅ |            ✅ |
+| Catalog management          |      ❌ |    ❌ |            ✅ |
+| User management             |      ❌ |    ❌ |            ✅ |
+| Dashboard / report metrics  |      ❌ |    ❌ |            ✅ |
 
 The application also excludes Spring Boot’s default generated user configuration, relying instead on the project’s own JWT-based security model.
 

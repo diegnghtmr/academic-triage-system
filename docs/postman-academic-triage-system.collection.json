@@ -2,43 +2,226 @@
   "info": {
     "_postman_id": "b5d6fe61-4c83-47e0-86d6-e89617dbe31f",
     "name": "Academic Triage System API",
-    "description": "Colección Postman para cubrir el 100% de los endpoints REST documentados y expuestos por los controllers del proyecto (34 operaciones).\n\nSuposiciones verificadas:\n- Base URL local: http://localhost:8080/api/v1\n- En perfil dev existe admin local `admin` / `admin123` (README + migraciones en db/migration-dev).\n- Los endpoints de AI pueden responder 200 o 503 porque la IA es opcional y está deshabilitada por defecto (OpenAPI + AGENTS.md).\n\nOrden de ejecución recomendado: correr la colección de arriba hacia abajo para que los IDs y tokens se vayan guardando automáticamente en variables de colección.",
+    "description": "Colecci\u00f3n Postman para cubrir el 100% de los endpoints REST documentados y expuestos por los controllers del proyecto (34 operaciones).\n\nSuposiciones verificadas:\n- Base URL local: http://localhost:8080/api/v1\n- En perfil dev existe admin local `admin` / `admin123` (README + migraciones en db/migration-dev).\n- Los endpoints de AI pueden responder 200 o 503 porque la IA es opcional y est\u00e1 deshabilitada por defecto (OpenAPI + AGENTS.md).\n\nOrden de ejecuci\u00f3n recomendado: correr la colecci\u00f3n de arriba hacia abajo para que los IDs y tokens se vayan guardando autom\u00e1ticamente en variables de colecci\u00f3n.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
-    { "key": "adminUsername", "value": "admin" },
-    { "key": "adminPassword", "value": "admin123" },
-    { "key": "adminToken", "value": "" },
-    { "key": "adminUserId", "value": "" },
-    { "key": "studentUsername", "value": "" },
-    { "key": "studentPassword", "value": "Student123!" },
-    { "key": "studentEmail", "value": "" },
-    { "key": "studentIdentification", "value": "" },
-    { "key": "studentToken", "value": "" },
-    { "key": "studentUserId", "value": "" },
-    { "key": "staffUsername", "value": "" },
-    { "key": "staffPassword", "value": "Staff123!" },
-    { "key": "staffEmail", "value": "" },
-    { "key": "staffIdentification", "value": "" },
-    { "key": "staffToken", "value": "" },
-    { "key": "staffUserId", "value": "" },
-    { "key": "requestTypeName", "value": "" },
-    { "key": "updatedRequestTypeName", "value": "" },
-    { "key": "createdRequestTypeId", "value": "" },
-    { "key": "originChannelName", "value": "" },
-    { "key": "updatedOriginChannelName", "value": "" },
-    { "key": "createdOriginChannelId", "value": "" },
-    { "key": "businessRuleName", "value": "" },
-    { "key": "updatedBusinessRuleName", "value": "" },
-    { "key": "createdBusinessRuleId", "value": "" },
-    { "key": "requestDeadline", "value": "" },
-    { "key": "requestCloseId", "value": "" },
-    { "key": "requestCancelId", "value": "" },
-    { "key": "requestRejectId", "value": "" },
-    { "key": "historyNoteId", "value": "" },
-    { "key": "updatedStaffEmail", "value": "" },
-    { "key": "updatedStaffIdentification", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin123"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "adminUserId",
+      "value": ""
+    },
+    {
+      "key": "studentUsername",
+      "value": ""
+    },
+    {
+      "key": "studentPassword",
+      "value": "Student123!"
+    },
+    {
+      "key": "studentEmail",
+      "value": ""
+    },
+    {
+      "key": "studentIdentification",
+      "value": ""
+    },
+    {
+      "key": "studentToken",
+      "value": ""
+    },
+    {
+      "key": "studentUserId",
+      "value": ""
+    },
+    {
+      "key": "staffUsername",
+      "value": ""
+    },
+    {
+      "key": "staffPassword",
+      "value": "Staff123!"
+    },
+    {
+      "key": "staffEmail",
+      "value": ""
+    },
+    {
+      "key": "staffIdentification",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
+      "key": "staffUserId",
+      "value": ""
+    },
+    {
+      "key": "requestTypeName",
+      "value": ""
+    },
+    {
+      "key": "updatedRequestTypeName",
+      "value": ""
+    },
+    {
+      "key": "createdRequestTypeId",
+      "value": ""
+    },
+    {
+      "key": "originChannelName",
+      "value": ""
+    },
+    {
+      "key": "updatedOriginChannelName",
+      "value": ""
+    },
+    {
+      "key": "createdOriginChannelId",
+      "value": ""
+    },
+    {
+      "key": "businessRuleName",
+      "value": ""
+    },
+    {
+      "key": "updatedBusinessRuleName",
+      "value": ""
+    },
+    {
+      "key": "createdBusinessRuleId",
+      "value": ""
+    },
+    {
+      "key": "requestDeadline",
+      "value": ""
+    },
+    {
+      "key": "requestCloseId",
+      "value": ""
+    },
+    {
+      "key": "requestCancelId",
+      "value": ""
+    },
+    {
+      "key": "requestRejectId",
+      "value": ""
+    },
+    {
+      "key": "historyNoteId",
+      "value": ""
+    },
+    {
+      "key": "updatedStaffEmail",
+      "value": ""
+    },
+    {
+      "key": "updatedStaffIdentification",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyRegisterStudent",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyRegisterStaff",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateRequestType",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateOriginChannel",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateBusinessRule",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateRequest",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateRequestCancel",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCreateRequestReject",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyClassify",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyPrioritize",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyAssign",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyAddHistory",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyAttend",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyClose",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyCancel",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeyReject",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKeySuggestClassification",
+      "value": ""
+    },
+    {
+      "key": "requestTypeETag",
+      "value": ""
+    },
+    {
+      "key": "originChannelETag",
+      "value": ""
+    },
+    {
+      "key": "businessRuleETag",
+      "value": ""
+    },
+    {
+      "key": "userETag",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -63,30 +246,45 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "Autentica el admin de desarrollo y guarda adminToken/adminUserId."
           }
         },
         {
-          "name": "Register student (público)",
+          "name": "Register student (p\u00fablico)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyRegisterStudent', pm.variables.replaceIn('{{$guid}}'));",
                   "const suffix = Date.now().toString();",
                   "pm.collectionVariables.set('studentUsername', `student_${suffix}`);",
                   "pm.collectionVariables.set('studentEmail', `student_${suffix}@example.com`);",
@@ -101,7 +299,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('studentUserId', data.id);"
+                  "pm.collectionVariables.set('studentUserId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -109,20 +308,38 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyRegisterStudent}}"
+              }
             ],
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"firstName\": \"Estudiante\",\n  \"lastName\": \"Postman\",\n  \"identification\": \"{{studentIdentification}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             },
-            "description": "Crea un STUDENT sin autenticación."
+            "description": "Crea un STUDENT sin autenticaci\u00f3n."
           }
         },
         {
@@ -144,18 +361,32 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -167,6 +398,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyRegisterStaff', pm.variables.replaceIn('{{$guid}}'));",
                   "const suffix = (Date.now() + 1).toString();",
                   "pm.collectionVariables.set('staffUsername', `staff_${suffix}`);",
                   "pm.collectionVariables.set('staffEmail', `staff_${suffix}@example.com`);",
@@ -181,7 +413,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('staffUserId', data.id);"
+                  "pm.collectionVariables.set('staffUserId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -189,23 +422,43 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyRegisterStaff}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"{{staffPassword}}\",\n  \"firstName\": \"Staff\",\n  \"lastName\": \"Postman\",\n  \"identification\": \"{{staffIdentification}}\",\n  \"role\": \"STAFF\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             },
             "description": "Crea un usuario STAFF usando el admin autenticado."
           }
@@ -229,25 +482,39 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "02 - Catálogos",
+      "name": "02 - Cat\u00e1logos",
       "item": [
         {
           "name": "List request types",
@@ -267,15 +534,27 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/request-types?active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "request-types"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "request-types"
+              ],
               "query": [
-                { "key": "active", "value": "true" }
+                {
+                  "key": "active",
+                  "value": "true"
+                }
               ]
             }
           }
@@ -288,6 +567,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateRequestType', pm.variables.replaceIn('{{$guid}}'));",
                   "const suffix = Date.now().toString();",
                   "pm.collectionVariables.set('requestTypeName', `Tipo Postman ${suffix}`);",
                   "pm.collectionVariables.set('updatedRequestTypeName', `Tipo Postman ${suffix} Actualizado`);"
@@ -301,7 +581,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('createdRequestTypeId', data.id);"
+                  "pm.collectionVariables.set('createdRequestTypeId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -309,23 +590,43 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequestType}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{requestTypeName}}\",\n  \"description\": \"Tipo generado automáticamente desde Postman\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"name\": \"{{requestTypeName}}\",\n  \"description\": \"Tipo generado autom\u00e1ticamente desde Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/request-types",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "request-types"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "request-types"
+              ]
             }
           }
         },
@@ -337,7 +638,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('requestTypeETag', pm.response.headers.get('ETag'));"
                 ]
               }
             }
@@ -347,13 +649,23 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/request-types/{{createdRequestTypeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "request-types", "{{createdRequestTypeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "request-types",
+                "{{createdRequestTypeId}}"
+              ]
             }
           }
         },
@@ -373,23 +685,44 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{requestTypeETag}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{updatedRequestTypeName}}\",\n  \"description\": \"Tipo actualizado automáticamente desde Postman\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"name\": \"{{updatedRequestTypeName}}\",\n  \"description\": \"Tipo actualizado autom\u00e1ticamente desde Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/request-types/{{createdRequestTypeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "request-types", "{{createdRequestTypeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "request-types",
+                "{{createdRequestTypeId}}"
+              ]
             }
           }
         },
@@ -411,15 +744,27 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/origin-channels?active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "origin-channels"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "origin-channels"
+              ],
               "query": [
-                { "key": "active", "value": "true" }
+                {
+                  "key": "active",
+                  "value": "true"
+                }
               ]
             }
           }
@@ -432,6 +777,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateOriginChannel', pm.variables.replaceIn('{{$guid}}'));",
                   "const suffix = Date.now().toString();",
                   "pm.collectionVariables.set('originChannelName', `Canal Postman ${suffix}`);",
                   "pm.collectionVariables.set('updatedOriginChannelName', `Canal Postman ${suffix} Actualizado`);"
@@ -445,7 +791,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('createdOriginChannelId', data.id);"
+                  "pm.collectionVariables.set('createdOriginChannelId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -453,23 +800,43 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateOriginChannel}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"{{originChannelName}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/origin-channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "origin-channels"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "origin-channels"
+              ]
             }
           }
         },
@@ -481,7 +848,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('originChannelETag', pm.response.headers.get('ETag'));"
                 ]
               }
             }
@@ -491,13 +859,23 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/origin-channels/{{createdOriginChannelId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "origin-channels", "{{createdOriginChannelId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "origin-channels",
+                "{{createdOriginChannelId}}"
+              ]
             }
           }
         },
@@ -517,23 +895,44 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{originChannelETag}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"{{updatedOriginChannelName}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/catalogs/origin-channels/{{createdOriginChannelId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["catalogs", "origin-channels", "{{createdOriginChannelId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "origin-channels",
+                "{{createdOriginChannelId}}"
+              ]
             }
           }
         }
@@ -560,16 +959,30 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/business-rules?active=true&conditionType=REQUEST_TYPE",
-              "host": ["{{baseUrl}}"],
-              "path": ["business-rules"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "business-rules"
+              ],
               "query": [
-                { "key": "active", "value": "true" },
-                { "key": "conditionType", "value": "REQUEST_TYPE" }
+                {
+                  "key": "active",
+                  "value": "true"
+                },
+                {
+                  "key": "conditionType",
+                  "value": "REQUEST_TYPE"
+                }
               ]
             }
           }
@@ -582,6 +995,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateBusinessRule', pm.variables.replaceIn('{{$guid}}'));",
                   "const suffix = Date.now().toString();",
                   "pm.collectionVariables.set('businessRuleName', `Regla Postman ${suffix}`);",
                   "pm.collectionVariables.set('updatedBusinessRuleName', `Regla Postman ${suffix} Actualizada`);"
@@ -595,7 +1009,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('createdBusinessRuleId', data.id);"
+                  "pm.collectionVariables.set('createdBusinessRuleId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -603,23 +1018,42 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateBusinessRule}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{businessRuleName}}\",\n  \"description\": \"Regla creada automáticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"HIGH\",\n  \"requestTypeId\": {{createdRequestTypeId}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"name\": \"{{businessRuleName}}\",\n  \"description\": \"Regla creada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"HIGH\",\n  \"requestTypeId\": {{createdRequestTypeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/business-rules",
-              "host": ["{{baseUrl}}"],
-              "path": ["business-rules"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "business-rules"
+              ]
             }
           }
         },
@@ -631,7 +1065,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('businessRuleETag', pm.response.headers.get('ETag'));"
                 ]
               }
             }
@@ -641,13 +1076,22 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["business-rules", "{{createdBusinessRuleId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "business-rules",
+                "{{createdBusinessRuleId}}"
+              ]
             }
           }
         },
@@ -667,23 +1111,43 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{businessRuleETag}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{updatedBusinessRuleName}}\",\n  \"description\": \"Regla actualizada automáticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"MEDIUM\",\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"active\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"name\": \"{{updatedBusinessRuleName}}\",\n  \"description\": \"Regla actualizada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"MEDIUM\",\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["business-rules", "{{createdBusinessRuleId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "business-rules",
+                "{{createdBusinessRuleId}}"
+              ]
             }
           }
         },
@@ -705,14 +1169,29 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/business-rules/{{createdBusinessRuleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["business-rules", "{{createdBusinessRuleId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "business-rules",
+                "{{createdBusinessRuleId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{businessRuleETag}}"
+              }
+            ]
           }
         }
       ]
@@ -728,6 +1207,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateRequest', pm.variables.replaceIn('{{$guid}}'));",
                   "const deadline = new Date();",
                   "deadline.setDate(deadline.getDate() + 5);",
                   "pm.collectionVariables.set('requestDeadline', deadline.toISOString().slice(0, 10));"
@@ -741,7 +1221,8 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('requestCloseId', data.id);"
+                  "pm.collectionVariables.set('requestCloseId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
                 ]
               }
             }
@@ -749,23 +1230,42 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequest}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para recorrer el flujo completo de clasificación, priorización, asignación, atención y cierre.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para recorrer el flujo completo de clasificaci\u00f3n, priorizaci\u00f3n, asignaci\u00f3n, atenci\u00f3n y cierre.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ]
             }
           }
         },
@@ -779,7 +1279,17 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('requestCancelId', data.id);"
+                  "pm.collectionVariables.set('requestCancelId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateRequestCancel', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -787,23 +1297,42 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequestCancel}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para probar la cancelación por parte del estudiante.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para probar la cancelaci\u00f3n por parte del estudiante.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ]
             }
           }
         },
@@ -817,7 +1346,17 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('requestRejectId', data.id);"
+                  "pm.collectionVariables.set('requestRejectId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCreateRequestReject', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -825,23 +1364,42 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequestReject}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para probar el rechazo administrativo desde estado REGISTERED.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ]
             }
           }
         },
@@ -863,17 +1421,34 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/requests?page=0&size=20&sort=registrationDateTime,desc",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" },
-                { "key": "sort", "value": "registrationDateTime,desc" }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "registrationDateTime,desc"
+                }
               ]
             }
           }
@@ -896,13 +1471,23 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/priority-suggestion",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "priority-suggestion"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "priority-suggestion"
+              ]
             }
           }
         },
@@ -914,7 +1499,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyClassify', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -922,23 +1517,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyClassify}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"observations\": \"Clasificación hecha desde la colección Postman.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"observations\": \"Clasificaci\u00f3n hecha desde la colecci\u00f3n Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/classify",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "classify"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "classify"
+              ]
             }
           }
         },
@@ -950,7 +1566,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyPrioritize', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -958,23 +1584,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyPrioritize}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"priority\": \"HIGH\",\n  \"justification\": \"Priorización manual ejecutada desde Postman para validar el endpoint.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"priority\": \"HIGH\",\n  \"justification\": \"Priorizaci\u00f3n manual ejecutada desde Postman para validar el endpoint.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/prioritize",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "prioritize"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "prioritize"
+              ]
             }
           }
         },
@@ -986,7 +1633,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyAssign', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -994,23 +1651,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyAssign}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assignedToUserId\": {{staffUserId}},\n  \"observations\": \"Asignación automática al staff creado por la colección.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"assignedToUserId\": {{staffUserId}},\n  \"observations\": \"Asignaci\u00f3n autom\u00e1tica al staff creado por la colecci\u00f3n.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/assign",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "assign"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "assign"
+              ]
             }
           }
         },
@@ -1024,7 +1702,17 @@
                 "exec": [
                   "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('historyNoteId', data.id);"
+                  "pm.collectionVariables.set('historyNoteId', data.id);",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyAddHistory', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1032,23 +1720,44 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyAddHistory}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"observations\": \"Nota interna agregada desde la colección Postman.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"observations\": \"Nota interna agregada desde la colecci\u00f3n Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/history",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "history"
+              ]
             }
           }
         },
@@ -1070,13 +1779,23 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/history",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "history"
+              ]
             }
           }
         },
@@ -1088,7 +1807,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyAttend', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1096,23 +1825,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyAttend}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"observations\": \"Atención registrada desde Postman con resolución favorable.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"observations\": \"Atenci\u00f3n registrada desde Postman con resoluci\u00f3n favorable.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/attend",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "attend"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "attend"
+              ]
             }
           }
         },
@@ -1124,7 +1874,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyClose', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1132,23 +1892,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyClose}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"closingObservation\": \"Cierre ejecutado desde Postman luego de completar todo el flujo operativo.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}/close",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}", "close"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}",
+                "close"
+              ]
             }
           }
         },
@@ -1170,15 +1951,24 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCloseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCloseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCloseId}}"
+              ]
             },
-            "description": "Consulta el detalle con el token del STUDENT dueño de la solicitud."
+            "description": "Consulta el detalle con el token del STUDENT due\u00f1o de la solicitud."
           }
         },
         {
@@ -1189,7 +1979,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyCancel', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1197,23 +1997,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCancel}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{studentToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cancellationReason\": \"Ya no necesito la gestión y cancelo la solicitud desde Postman.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"cancellationReason\": \"Ya no necesito la gesti\u00f3n y cancelo la solicitud desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestCancelId}}/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestCancelId}}", "cancel"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestCancelId}}",
+                "cancel"
+              ]
             }
           }
         },
@@ -1225,7 +2046,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeyReject', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1233,23 +2064,44 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyReject}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"rejectionReason\": \"Rechazo administrativo generado desde Postman para validar el endpoint.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/requests/{{requestRejectId}}/reject",
-              "host": ["{{baseUrl}}"],
-              "path": ["requests", "{{requestRejectId}}", "reject"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests",
+                "{{requestRejectId}}",
+                "reject"
+              ]
             }
           }
         }
@@ -1276,19 +2128,42 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/users?page=0&size=20&sort=username,asc&role=STAFF&active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" },
-                { "key": "sort", "value": "username,asc" },
-                { "key": "role", "value": "STAFF" },
-                { "key": "active", "value": "true" }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "username,asc"
+                },
+                {
+                  "key": "role",
+                  "value": "STAFF"
+                },
+                {
+                  "key": "active",
+                  "value": "true"
+                }
               ]
             }
           }
@@ -1301,7 +2176,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('userETag', pm.response.headers.get('ETag'));"
                 ]
               }
             }
@@ -1311,13 +2187,22 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{staffUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{staffUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{staffUserId}}"
+              ]
             }
           }
         },
@@ -1348,23 +2233,43 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{userETag}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Staff Actualizado\",\n  \"lastName\": \"Postman QA\",\n  \"identification\": \"{{updatedStaffIdentification}}\",\n  \"email\": \"{{updatedStaffEmail}}\",\n  \"role\": \"STAFF\",\n  \"active\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{staffUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{staffUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{staffUserId}}"
+              ]
             }
           }
         }
@@ -1381,7 +2286,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 o 503', function () { pm.expect([200, 503]).to.include(pm.response.code); });"
+                  "pm.test('Status 200 o 503', function () { pm.expect([200, 503]).to.include(pm.response.code); });",
+                  "if (pm.response.code !== 503) { pm.test('Idempotency-Status is fresh', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('fresh'); }); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKeySuggestClassification', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             }
@@ -1389,25 +2304,45 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeySuggestClassification}}"
+              }
             ],
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{staffToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"description\": \"Necesito cancelar una asignatura porque tengo choque de horario con otra materia obligatoria y el plazo vence pronto.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/ai/suggest-classification",
-              "host": ["{{baseUrl}}"],
-              "path": ["ai", "suggest-classification"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "suggest-classification"
+              ]
             },
-            "description": "Acepta 503 porque la IA es opcional por diseño."
+            "description": "Acepta 503 porque la IA es opcional por dise\u00f1o."
           }
         },
         {
@@ -1428,15 +2363,25 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/ai/summarize/{{requestCloseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["ai", "summarize", "{{requestCloseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "summarize",
+                "{{requestCloseId}}"
+              ]
             },
-            "description": "Acepta 503 porque la IA es opcional por diseño."
+            "description": "Acepta 503 porque la IA es opcional por dise\u00f1o."
           }
         }
       ]
@@ -1462,18 +2407,194 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                { "key": "token", "value": "{{adminToken}}", "type": "string" }
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/reports/dashboard?dateFrom=2026-01-01&dateTo=2026-12-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "dashboard"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "dashboard"
+              ],
               "query": [
-                { "key": "dateFrom", "value": "2026-01-01" },
-                { "key": "dateTo", "value": "2026-12-31" }
+                {
+                  "key": "dateFrom",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-12-31"
+                }
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Contratos (Idempotency & ETag)",
+      "item": [
+        {
+          "name": "Replay POST Request (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 (Replayed)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Idempotency-Status is replayed', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('replayed'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequest}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"Solicitud generada desde Postman para recorrer el flujo completo de clasificaci\u00f3n, priorizaci\u00f3n, asignaci\u00f3n, atenci\u00f3n y cierre.\",\n  \"deadline\": \"{{requestDeadline}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ]
+            },
+            "description": "Repite la misma request de creacion para probar el header Idempotency-Status: replayed."
+          }
+        },
+        {
+          "name": "Idempotency Mismatch (422 Unprocessable Entity)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', function () { pm.response.to.have.status(422); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKeyCreateRequest}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"originChannelId\": {{createdOriginChannelId}},\n  \"description\": \"CUERPO DIFERENTE MISMA KEY\",\n  \"deadline\": \"{{requestDeadline}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requests"
+              ]
+            },
+            "description": "Probar enviar distinto body con la misma clave."
+          }
+        },
+        {
+          "name": "Update request type STALE ETag (412 Precondition Failed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 412', function () { pm.response.to.have.status(412); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"obsolete-etag-12345\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{updatedRequestTypeName}}\",\n  \"description\": \"Tipo actualizado fallando\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogs/request-types/{{createdRequestTypeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogs",
+                "request-types",
+                "{{createdRequestTypeId}}"
+              ]
+            },
+            "description": "Falla a prop\u00f3sito con un ETag incorrecto."
           }
         }
       ]

@@ -45,17 +45,24 @@ register_code="$(curl -s -o "${tmp_dir}/register.json" -w "%{http_code}" \
   --data "{\"username\":\"${USERNAME}\",\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"firstName\":\"Docker\",\"lastName\":\"Smoke\",\"identification\":\"ID-${TS}\"}")"
 test "${register_code}" = "201"
 
-echo "[4/6] Logging in smoke user"
+echo "[4/6] Logging in smoke user (canonical identifier)"
 login_code="$(curl -s -o "${tmp_dir}/login.json" -w "%{http_code}" \
   -X POST "${BASE_URL}/api/v1/auth/login" \
   -H "Content-Type: application/json" \
-  --data "{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}")"
+  --data "{\"identifier\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}")"
 test "${login_code}" = "200"
 TOKEN="$(python3 - <<'PY' "${tmp_dir}/login.json"
 import json, sys
 print(json.load(open(sys.argv[1]))['token'])
 PY
 )"
+
+echo "[4b/6] Alias compatibility check (deprecated username field — backward compat)"
+alias_login_code="$(curl -s -o "${tmp_dir}/login-alias.json" -w "%{http_code}" \
+  -X POST "${BASE_URL}/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  --data "{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}")"
+test "${alias_login_code}" = "200"
 
 echo "[5/6] Discovering first available catalog IDs"
 catalog_payload="$(

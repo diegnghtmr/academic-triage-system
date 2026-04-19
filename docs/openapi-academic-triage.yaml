@@ -73,7 +73,21 @@ paths:
     post:
       tags: [Authentication]
       summary: Log in
-      description: Authenticates a user and returns a JWT token.
+      description: |
+        Authenticates a user and returns a JWT token.
+
+        **Canonical identifier field**: Use `identifier` to provide a username or email address.
+        The deprecated `username` field is accepted as a backward-compatibility alias during
+        the transition window and will be removed in a future release.
+
+        **Precedence rules**:
+        - If only `identifier` is provided → canonical path.
+        - If only `username` is provided → alias path (deprecated, emits a server-side warn log).
+        - If both are provided with the **same** value → treated as canonical.
+        - If both are provided with **different** values → 400 Bad Request (no token issued).
+
+        **Ambiguity**: if the identifier matches multiple user records (data quality issue),
+        the request is rejected with 409 Conflict and no token is issued.
       operationId: login
       security: []
       requestBody:
@@ -82,9 +96,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
-            example:
-              username: "jperez"
-              password: "MyPassword123"
+            examples:
+              canonical-username:
+                summary: Login with username (canonical)
+                value:
+                  identifier: "jperez"
+                  password: "MyPassword123"
+              canonical-email:
+                summary: Login with email (canonical)
+                value:
+                  identifier: "jperez@uniquindio.edu.co"
+                  password: "MyPassword123"
+              alias-compatibility:
+                summary: Login with deprecated username alias (backward compat)
+                value:
+                  username: "jperez"
+                  password: "MyPassword123"
       responses:
         '200':
           description: Login successful
@@ -92,8 +119,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /auth/register:
     post:
@@ -102,8 +133,13 @@ paths:
       description: |
         Creates a new user account. Only ADMIN users can assign STAFF or ADMIN roles.
         Without a token, the account is created with the STUDENT role by default.
+
+        **Idempotency**: requires `Idempotency-Key` header. Replaying the same key
+        with the same body returns the original 201 response without creating a duplicate user.
       operationId: register
       security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -120,14 +156,19 @@ paths:
       responses:
         '201':
           description: User created successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   # ═══════════════════════════════════════════
   # ACADEMIC REQUESTS
@@ -145,6 +186,8 @@ paths:
         The system stores the request type, description, origin channel,
         registration timestamp, and the requester's identity.
       operationId: createRequest
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -159,22 +202,28 @@ paths:
       responses:
         '201':
           description: Request registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RequestResponse'
           headers:
             Location:
               description: URI of the newly created request
               schema:
                 type: string
                 example: /api/v1/requests/42
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/ProblemBadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/ProblemUnauthorized'
         '403':
           $ref: '#/components/responses/ProblemForbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
     get:
       tags: [Requests]
@@ -272,9 +321,11 @@ paths:
 
         **Allowed roles**: STAFF.
         **Precondition**: The request must be in `REGISTERED` status.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: classifyRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -287,12 +338,15 @@ paths:
       responses:
         '200':
           description: Request classified successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -300,7 +354,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/prioritize:
     patch:
@@ -315,9 +371,11 @@ paths:
 
         **Allowed roles**: STAFF.
         **Precondition**: The request must be in `CLASSIFIED` status.
+        **Idempotency**: requires `Idempotency-Key`. Same key + same body = replay. Same key + different body = 422.
       operationId: prioritizeRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -330,12 +388,15 @@ paths:
       responses:
         '200':
           description: Request prioritized successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -343,7 +404,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/assign:
     patch:
@@ -356,9 +419,11 @@ paths:
         **Allowed roles**: STAFF.
         **Precondition**: The request must be in `CLASSIFIED` status (already prioritized).
         **Validation**: The assigned user must be active and have the STAFF role.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: assignRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -371,12 +436,15 @@ paths:
       responses:
         '200':
           description: Request assigned and now in progress
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -384,7 +452,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/attend:
     patch:
@@ -395,9 +465,11 @@ paths:
 
         **Allowed roles**: STAFF (preferably the assigned responsible).
         **Precondition**: The request must be in `IN_PROGRESS` status.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: attendRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -409,12 +481,15 @@ paths:
       responses:
         '200':
           description: Request marked as attended
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/ProblemBadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -422,7 +497,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/close:
     patch:
@@ -436,9 +513,11 @@ paths:
         **Preconditions**:
         - The request must be in `ATTENDED` status.
         - A closing observation is mandatory.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: closeRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -450,12 +529,15 @@ paths:
       responses:
         '200':
           description: Request closed successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/ProblemBadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -463,7 +545,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/cancel:
     patch:
@@ -477,9 +561,11 @@ paths:
         **Preconditions**:
         - The request must be in `REGISTERED` or `CLASSIFIED` status.
         - A cancellation reason is mandatory.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: cancelRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -491,12 +577,15 @@ paths:
       responses:
         '200':
           description: Request cancelled successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/ProblemBadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -504,7 +593,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /requests/{requestId}/reject:
     patch:
@@ -518,9 +609,11 @@ paths:
         **Preconditions**:
         - The request must be in `REGISTERED` status.
         - A rejection reason is mandatory.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: rejectRequest
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -532,12 +625,15 @@ paths:
       responses:
         '200':
           description: Request rejected successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestResponse'
         '400':
-          $ref: '#/components/responses/ProblemBadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -545,7 +641,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   # ═══════════════════════════════════════════
   # HISTORY
@@ -587,9 +685,11 @@ paths:
         Useful for recording intermediate actions or communications.
 
         **Allowed roles**: STAFF.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: addHistoryNote
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -601,16 +701,25 @@ paths:
       responses:
         '201':
           description: Note added to history
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HistoryEntryResponse'
+        '400':
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   # ═══════════════════════════════════════════
   # USERS
@@ -664,6 +773,8 @@ paths:
       summary: Get user details
       description: |
         Returns the full profile of a specific user.
+        The response includes an `ETag` header with the current version.
+        Use this ETag value in the `If-Match` header for subsequent PUT requests.
 
         **Allowed roles**: ADMIN, or the user themselves.
       operationId: getUserById
@@ -672,6 +783,9 @@ paths:
       responses:
         '200':
           description: User details
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -688,11 +802,14 @@ paths:
       summary: Update a user
       description: |
         Updates user information including activation/deactivation and role changes.
+        **Requires `If-Match`** with the strong ETag obtained from a prior GET.
+        Weak ETags (`W/"7"`) are rejected with 412.
 
         **Allowed roles**: ADMIN.
       operationId: updateUser
       parameters:
         - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -712,6 +829,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/ETagPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ETagPreconditionRequired'
 
   # ═══════════════════════════════════════════
   # CATALOGS
@@ -752,7 +873,10 @@ paths:
         Adds a new request type to the catalog.
 
         **Allowed roles**: ADMIN.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: createRequestType
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -765,29 +889,40 @@ paths:
       responses:
         '201':
           description: Request type created
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RequestTypeResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /catalogs/request-types/{typeId}:
     get:
       tags: [Catalogs]
       summary: Get a request type by ID
+      description: |
+        Returns the request type details. The response includes an `ETag` header with the current version.
+        Use this ETag value in the `If-Match` header for subsequent PUT requests.
       operationId: getRequestTypeById
       parameters:
         - $ref: '#/components/parameters/TypeIdPath'
       responses:
         '200':
           description: Request type details
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -801,10 +936,15 @@ paths:
       tags: [Catalogs]
       summary: Update a request type
       description: |
+        Updates an existing request type.
+        **Requires `If-Match`** with the strong ETag obtained from a prior GET.
+        Weak ETags (`W/"7"`) are rejected with 412.
+
         **Allowed roles**: ADMIN.
       operationId: updateRequestType
       parameters:
         - $ref: '#/components/parameters/TypeIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -822,10 +962,14 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/ProblemConflict'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+        '412':
+          $ref: '#/components/responses/ETagPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ETagPreconditionRequired'
 
   /catalogs/origin-channels:
     get:
@@ -860,7 +1004,10 @@ paths:
       summary: Create an origin channel
       description: |
         **Allowed roles**: ADMIN.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: createOriginChannel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -872,29 +1019,40 @@ paths:
       responses:
         '201':
           description: Origin channel created
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/OriginChannelResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/ProblemConflict'
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /catalogs/origin-channels/{channelId}:
     get:
       tags: [Catalogs]
       summary: Get an origin channel by ID
+      description: |
+        Returns the origin channel details. The response includes an `ETag` header with the current version.
+        Use this ETag value in the `If-Match` header for subsequent PUT requests.
       operationId: getOriginChannelById
       parameters:
         - $ref: '#/components/parameters/ChannelIdPath'
       responses:
         '200':
           description: Origin channel details
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -908,10 +1066,15 @@ paths:
       tags: [Catalogs]
       summary: Update an origin channel
       description: |
+        Updates an existing origin channel.
+        **Requires `If-Match`** with the strong ETag obtained from a prior GET.
+        Weak ETags (`W/"7"`) are rejected with 412.
+
         **Allowed roles**: ADMIN.
       operationId: updateOriginChannel
       parameters:
         - $ref: '#/components/parameters/ChannelIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -929,10 +1092,14 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/ProblemConflict'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+        '412':
+          $ref: '#/components/responses/ETagPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ETagPreconditionRequired'
 
   # ═══════════════════════════════════════════
   # BUSINESS RULES
@@ -982,7 +1149,10 @@ paths:
         and/or deadline proximity.
 
         **Allowed roles**: ADMIN.
+        **Idempotency**: requires `Idempotency-Key`.
       operationId: createBusinessRule
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -999,27 +1169,40 @@ paths:
       responses:
         '201':
           description: Business rule created
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BusinessRuleResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
 
   /business-rules/{ruleId}:
     get:
       tags: [Business Rules]
       summary: Get a business rule by ID
+      description: |
+        Returns the rule details. The response includes an `ETag` header with the current version.
+        Use this ETag value in the `If-Match` header for subsequent PUT or DELETE requests.
       operationId: getBusinessRuleById
       parameters:
         - $ref: '#/components/parameters/RuleIdPath'
       responses:
         '200':
           description: Business rule details
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -1033,10 +1216,15 @@ paths:
       tags: [Business Rules]
       summary: Update a business rule
       description: |
+        Updates an existing business rule.
+        **Requires `If-Match`** with the strong ETag obtained from a prior GET.
+        Weak ETags (`W/"7"`) are rejected with 412.
+
         **Allowed roles**: ADMIN.
       operationId: updateBusinessRule
       parameters:
         - $ref: '#/components/parameters/RuleIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -1056,17 +1244,23 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/ETagPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ETagPreconditionRequired'
 
     delete:
       tags: [Business Rules]
       summary: Deactivate a business rule
       description: |
         Performs a soft delete by setting the rule to inactive.
+        **Requires `If-Match`** with the strong ETag obtained from a prior GET.
 
         **Allowed roles**: ADMIN.
       operationId: deactivateBusinessRule
       parameters:
         - $ref: '#/components/parameters/RuleIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
       responses:
         '204':
           description: Business rule deactivated
@@ -1076,6 +1270,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/ETagPreconditionFailed'
+        '428':
+          $ref: '#/components/responses/ETagPreconditionRequired'
 
   # ═══════════════════════════════════════════
   # AI ASSISTANT
@@ -1097,6 +1295,8 @@ paths:
 
         **Allowed roles**: STAFF.
       operationId: suggestClassification
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
         required: true
         content:
@@ -1108,6 +1308,9 @@ paths:
       responses:
         '200':
           description: Suggestion generated successfully
+          headers:
+            Idempotency-Status:
+              $ref: '#/components/headers/IdempotencyStatus'
           content:
             application/json:
               schema:
@@ -1118,10 +1321,16 @@ paths:
                 suggestedPriority: "MEDIUM"
                 confidence: 0.87
                 reasoning: "The description explicitly mentions course cancellation due to a schedule conflict. Medium priority because no immediate deadline is mentioned."
+        '400':
+          $ref: '#/components/responses/IdempotencyMissingKey'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyOutstanding'
+        '422':
+          $ref: '#/components/responses/IdempotencyFingerprintMismatch'
         '503':
           $ref: '#/components/responses/ProblemServiceUnavailable'
 
@@ -1210,7 +1419,49 @@ components:
       bearerFormat: JWT
       description: JWT token obtained from /auth/login
 
+  headers:
+    IdempotencyStatus:
+      description: |
+        Indicates whether the response was produced by a fresh execution or replayed from a previous one.
+        - `fresh`: the operation ran for the first time with this key.
+        - `replayed`: the key was already processed; this is an exact replay of the original response.
+      schema:
+        type: string
+        enum: [fresh, replayed]
+        example: fresh
+    ETag:
+      description: |
+        Strong ETag representing the current version of the resource.
+        Format: `"<version>"` (e.g., `"7"`).
+        Use this value in `If-Match` for subsequent PUT or DELETE requests.
+      schema:
+        type: string
+        example: '"7"'
+
   parameters:
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Client-generated idempotency key (UUID v4 recommended).
+        The same key with the same request body replays the original response without executing the operation again.
+        The same key with a different request body returns 422 Unprocessable Entity.
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    IfMatchHeader:
+      name: If-Match
+      in: header
+      required: true
+      description: |
+        Strong ETag obtained from a prior GET of the resource (`ETag` response header).
+        Format: `"<version>"` (e.g., `"7"`). Weak ETags (`W/"7"`) are rejected with 412.
+        Omitting this header returns 428 Precondition Required.
+      schema:
+        type: string
+        example: '"7"'
     RequestIdPath:
       name: requestId
       in: path
@@ -1453,6 +1704,82 @@ components:
             title: "Not Found"
             detail: "Request with ID 999 not found."
 
+    Conflict:
+      description: Conflict — duplicate resource or ambiguous identifier
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 409
+            title: "Conflict"
+            detail: "El identificador proporcionado es ambiguo y no permite autenticación segura"
+
+    IdempotencyMissingKey:
+      description: |
+        **400 — Missing Idempotency-Key**: The `Idempotency-Key` header is absent or blank.
+        All mutating endpoints require this header.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 400
+            title: "Bad Request"
+            detail: "El header Idempotency-Key es obligatorio para esta operación"
+
+    IdempotencyOutstanding:
+      description: |
+        **409 — Outstanding idempotency request**: A request with the same `Idempotency-Key`
+        is still being processed. Retry after a short backoff.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 409
+            title: "Conflict"
+            detail: "Existe una solicitud en curso para la misma clave de idempotencia"
+
+    IdempotencyFingerprintMismatch:
+      description: |
+        **422 — Fingerprint mismatch**: The `Idempotency-Key` was already used with a different
+        request body. Each key must map to exactly one canonical request payload.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 422
+            title: "Unprocessable Entity"
+            detail: "El body de la solicitud no coincide con el fingerprint almacenado para esta clave"
+
+    ETagPreconditionFailed:
+      description: |
+        **412 — Precondition Failed**: The version in `If-Match` does not match the current
+        resource version. Fetch the resource again with GET to obtain the latest ETag.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 412
+            title: "Precondition Failed"
+            detail: "La versión del recurso no coincide con el ETag proporcionado"
+
+    ETagPreconditionRequired:
+      description: |
+        **428 — Precondition Required**: The `If-Match` header is mandatory for this operation
+        but was not provided.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          example:
+            status: 428
+            title: "Precondition Required"
+            detail: "Se requiere el header If-Match para modificar o eliminar este recurso"
+
   schemas:
 
     # ── Enumerations ──
@@ -1481,12 +1808,28 @@ components:
 
     LoginRequest:
       type: object
-      required: [username, password]
+      description: |
+        Login request body. Exactly one of `identifier` or `username` must be provided
+        (providing both is only valid when they carry the same value).
+      required: [password]
       properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: >
+            Canonical login field. Accepts a username or an email address.
+            Takes precedence over the deprecated `username` field when both are present.
+          example: "jperez"
         username:
           type: string
           minLength: 3
-          maxLength: 50
+          maxLength: 255
+          deprecated: true
+          description: >
+            DEPRECATED — Use `identifier` instead. Kept for backward compatibility
+            during the transition window. Will be removed in a future release.
+          example: "jperez"
         password:
           type: string
           format: password
