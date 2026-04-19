@@ -3,11 +3,14 @@ package co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.reposito
 import co.edu.uniquindio.triage.infrastructure.adapter.out.persistence.entity.AcademicRequestJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.Optional;
 
@@ -31,6 +34,10 @@ public interface RequestJpaRepository extends JpaRepository<AcademicRequestJpaEn
             where request.id = :requestId
             """)
     Optional<AcademicRequestJpaEntity> findDetailedById(@Param("requestId") Long requestId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select request from AcademicRequestJpaEntity request where request.id = :requestId")
+    Optional<AcademicRequestJpaEntity> findByIdForUpdate(@Param("requestId") Long requestId);
 
     @Query(value = """
             select coalesce(auto_increment, 1)

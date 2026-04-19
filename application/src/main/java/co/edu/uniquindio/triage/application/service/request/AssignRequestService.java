@@ -5,7 +5,7 @@ import co.edu.uniquindio.triage.application.port.in.command.request.AssignReques
 import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestForMutationPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
@@ -20,18 +20,18 @@ import java.util.Optional;
 
 public class AssignRequestService implements AssignRequestUseCase {
 
-    private final LoadRequestPort loadRequestPort;
+    private final LoadRequestForMutationPort loadRequestForMutationPort;
     private final LoadRequestTypePort loadRequestTypePort;
     private final LoadOriginChannelPort loadOriginChannelPort;
     private final LoadUserAuthPort loadUserAuthPort;
     private final SaveRequestPort saveRequestPort;
 
-    public AssignRequestService(LoadRequestPort loadRequestPort,
+    public AssignRequestService(LoadRequestForMutationPort loadRequestForMutationPort,
                                 LoadRequestTypePort loadRequestTypePort,
                                 LoadOriginChannelPort loadOriginChannelPort,
                                 LoadUserAuthPort loadUserAuthPort,
                                 SaveRequestPort saveRequestPort) {
-        this.loadRequestPort = Objects.requireNonNull(loadRequestPort, "El loadRequestPort no puede ser null");
+        this.loadRequestForMutationPort = Objects.requireNonNull(loadRequestForMutationPort, "El loadRequestForMutationPort no puede ser null");
         this.loadRequestTypePort = Objects.requireNonNull(loadRequestTypePort, "El loadRequestTypePort no puede ser null");
         this.loadOriginChannelPort = Objects.requireNonNull(loadOriginChannelPort, "El loadOriginChannelPort no puede ser null");
         this.loadUserAuthPort = Objects.requireNonNull(loadUserAuthPort, "El loadUserAuthPort no puede ser null");
@@ -45,7 +45,7 @@ public class AssignRequestService implements AssignRequestUseCase {
 
         ensureStaffActor(actor);
 
-        var request = loadRequestPort.loadById(command.requestId())
+        var request = loadRequestForMutationPort.loadByIdForMutation(command.requestId())
                 .orElseThrow(() -> new RequestNotFoundException(command.requestId()));
         var assignee = loadUserAuthPort.loadById(command.assignedToUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User", "id", command.assignedToUserId().value()));

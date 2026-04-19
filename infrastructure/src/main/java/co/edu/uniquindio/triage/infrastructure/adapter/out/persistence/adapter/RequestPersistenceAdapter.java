@@ -4,7 +4,9 @@ import co.edu.uniquindio.triage.application.port.in.common.Page;
 import co.edu.uniquindio.triage.application.port.in.request.RequestDetail;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.CreateRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestForMutationPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestVersionPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.NewAcademicRequest;
 import co.edu.uniquindio.triage.application.port.out.persistence.RequestSearchCriteria;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
@@ -31,7 +33,7 @@ import java.util.Optional;
 import java.util.ArrayList;
 
 @Component
-class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, LoadRequestPort, SearchRequestPort {
+class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, LoadRequestPort, LoadRequestForMutationPort, SearchRequestPort, LoadRequestVersionPort {
 
     private static final Map<String, String> SORT_FIELDS = Map.of(
             "id", "id",
@@ -112,9 +114,9 @@ class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, L
     public void save(AcademicRequest request) {
         Objects.requireNonNull(request, "La solicitud no puede ser null");
 
-        if (!requestJpaRepository.existsById(request.getId().value())) {
-            throw new IllegalStateException("No se puede actualizar una solicitud inexistente con save(); use create() para nuevas solicitudes");
-        }
+        Long currentVersion = requestJpaRepository.findById(request.getId().value())
+                .map(AcademicRequestJpaEntity::getVersion)
+                .orElseThrow(() -> new IllegalStateException("No se puede actualizar una solicitud inexistente con save(); use create() para nuevas solicitudes"));
 
         var applicantReference = entityManager.getReference(UserJpaEntity.class, request.getApplicantId().value());
         var responsibleReference = request.getResponsibleId() == null
@@ -132,6 +134,7 @@ class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, L
                 businessRuleId -> entityManager.getReference(BusinessRuleJpaEntity.class, businessRuleId),
                 userId -> entityManager.getReference(UserJpaEntity.class, userId)
         );
+        entity.setVersion(currentVersion);
 
         entityManager.merge(entity);
         entityManager.flush();
@@ -143,10 +146,35 @@ class RequestPersistenceAdapter implements CreateRequestPort, SaveRequestPort, L
         return requestJpaRepository.findDetailedById(requestId.value()).map(requestPersistenceMapper::toDomain);
     }
 
+    /**
+     * Loads the aggregate under a PESSIMISTIC_WRITE lock (SELECT … FOR UPDATE).
+     * Must be called from within an active @Transactional boundary so that the lock
+     * is held until the enclosing transaction commits — preventing lost-update races.
+     */
+    @Override
+    @Transactional
+    public Optional<AcademicRequest> loadByIdForMutation(RequestId requestId) {
+        // Acquire X lock on the main row — blocks concurrent mutations on the same request
+        var locked = requestJpaRepository.findByIdForUpdate(requestId.value());
+        if (locked.isEmpty()) {
+            return Optional.empty();
+        }
+        // Load with full associations (history, etc.) within the same transaction
+        return requestJpaRepository.findDetailedById(requestId.value())
+                .map(requestPersistenceMapper::toDomain);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Optional<RequestDetail> loadDetailById(RequestId requestId) {
         return requestJpaRepository.findDetailedById(requestId.value()).map(requestPersistenceMapper::toDetail);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> findVersionById(RequestId requestId) {
+        return requestJpaRepository.findById(requestId.value())
+                .map(AcademicRequestJpaEntity::getVersion);
     }
 
     @Override

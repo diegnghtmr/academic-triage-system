@@ -5,7 +5,7 @@ import co.edu.uniquindio.triage.application.port.in.command.request.ClassifyRequ
 import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.request.RequestSummary;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadOriginChannelPort;
-import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestPort;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestForMutationPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadRequestTypePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
 import co.edu.uniquindio.triage.application.port.out.persistence.SaveRequestPort;
@@ -20,18 +20,18 @@ import java.util.Optional;
 
 public class ClassifyRequestService implements ClassifyRequestUseCase {
 
-    private final LoadRequestPort loadRequestPort;
+    private final LoadRequestForMutationPort loadRequestForMutationPort;
     private final LoadRequestTypePort loadRequestTypePort;
     private final LoadOriginChannelPort loadOriginChannelPort;
     private final LoadUserAuthPort loadUserAuthPort;
     private final SaveRequestPort saveRequestPort;
 
-    public ClassifyRequestService(LoadRequestPort loadRequestPort,
+    public ClassifyRequestService(LoadRequestForMutationPort loadRequestForMutationPort,
                                   LoadRequestTypePort loadRequestTypePort,
                                   LoadOriginChannelPort loadOriginChannelPort,
                                   LoadUserAuthPort loadUserAuthPort,
                                   SaveRequestPort saveRequestPort) {
-        this.loadRequestPort = Objects.requireNonNull(loadRequestPort, "El loadRequestPort no puede ser null");
+        this.loadRequestForMutationPort = Objects.requireNonNull(loadRequestForMutationPort, "El loadRequestForMutationPort no puede ser null");
         this.loadRequestTypePort = Objects.requireNonNull(loadRequestTypePort, "El loadRequestTypePort no puede ser null");
         this.loadOriginChannelPort = Objects.requireNonNull(loadOriginChannelPort, "El loadOriginChannelPort no puede ser null");
         this.loadUserAuthPort = Objects.requireNonNull(loadUserAuthPort, "El loadUserAuthPort no puede ser null");
@@ -45,7 +45,7 @@ public class ClassifyRequestService implements ClassifyRequestUseCase {
 
         ensureStaffActor(actor);
 
-        var request = loadRequestPort.loadById(command.requestId())
+        var request = loadRequestForMutationPort.loadByIdForMutation(command.requestId())
                 .orElseThrow(() -> new RequestNotFoundException(command.requestId()));
         var requestType = loadRequestTypePort.loadById(command.requestTypeId())
                 .filter(co.edu.uniquindio.triage.domain.model.RequestType::isActive)
