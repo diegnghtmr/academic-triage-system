@@ -7,6 +7,7 @@ import co.edu.uniquindio.triage.application.port.out.security.AuthenticatedUserP
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.exception.AmbiguousLoginIdentifierException;
 import co.edu.uniquindio.triage.domain.exception.AuthenticationFailedException;
 import co.edu.uniquindio.triage.domain.model.Email;
 import co.edu.uniquindio.triage.domain.model.Identification;
@@ -33,58 +34,143 @@ class LoginServiceTest {
         loginService = new LoginService(userPort, new StubPasswordEncoderPort(), new StubTokenProviderPort());
     }
 
-    @Test
-    void validCredentialsMustIssueJwtResponse() {
-        userPort.user = persistedUser(true, "encoded-MyPassword123");
+    // ── canonical identifier (username) success ──────────────────────────────
 
-        var result = loginService.login(new LoginCommand(new Username("jperez"), "MyPassword123"));
+    @Test
+    void canonicalUsernameIdentifierMustIssueToken() {
+        userPort.usernameResult = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", true, "encoded-MyPassword123");
+
+        var result = loginService.login(new LoginCommand("jperez", "MyPassword123"));
 
         assertThat(result.authToken().token()).isEqualTo("jwt-token");
         assertThat(result.authToken().tokenType()).isEqualTo("Bearer");
         assertThat(result.user().getUsername().value()).isEqualTo("jperez");
     }
 
-    @Test
-    void wrongPasswordMustFailAuthentication() {
-        userPort.user = persistedUser(true, "encoded-MyPassword123");
+    // ── canonical identifier (email) success ─────────────────────────────────
 
-        assertThatThrownBy(() -> loginService.login(new LoginCommand(new Username("jperez"), "wrongPass123")))
+    @Test
+    void canonicalEmailIdentifierMustIssueToken() {
+        userPort.emailResult = persistedUser(2L, "alopez", "alopez@uniquindio.edu.co", true, "encoded-MyPassword123");
+
+        var result = loginService.login(new LoginCommand("alopez@uniquindio.edu.co", "MyPassword123"));
+
+        assertThat(result.user().getUsername().value()).isEqualTo("alopez");
+    }
+
+    // ── deprecated alias (username field) success ─────────────────────────────
+
+    @Test
+    void aliasPathMustSucceedWithParityToCanonical() {
+        userPort.usernameResult = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", true, "encoded-MyPassword123");
+
+        var result = loginService.login(new LoginCommand("jperez", true, "MyPassword123"));
+
+        assertThat(result.authToken().token()).isEqualTo("jwt-token");
+        assertThat(result.user().getUsername().value()).isEqualTo("jperez");
+    }
+
+    // ── invalid credentials parity ────────────────────────────────────────────
+
+    @Test
+    void wrongPasswordMustFailWithAuthenticationFailed() {
+        userPort.usernameResult = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", true, "encoded-MyPassword123");
+
+        assertThatThrownBy(() -> loginService.login(new LoginCommand("jperez", "wrongPass123")))
                 .isInstanceOf(AuthenticationFailedException.class);
     }
 
     @Test
-    void inactiveUserMustFailAuthentication() {
-        userPort.user = persistedUser(false, "encoded-MyPassword123");
-
-        assertThatThrownBy(() -> loginService.login(new LoginCommand(new Username("jperez"), "MyPassword123")))
+    void unknownIdentifierMustFailWithAuthenticationFailed() {
+        assertThatThrownBy(() -> loginService.login(new LoginCommand("noexiste", "MyPassword123")))
                 .isInstanceOf(AuthenticationFailedException.class);
     }
 
-    private User persistedUser(boolean active, String hash) {
+    // ── inactive user parity ──────────────────────────────────────────────────
+
+    @Test
+    void inactiveUserWithUsernameIdentifierMustFailAuthentication() {
+        userPort.usernameResult = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", false, "encoded-MyPassword123");
+
+        assertThatThrownBy(() -> loginService.login(new LoginCommand("jperez", "MyPassword123")))
+                .isInstanceOf(AuthenticationFailedException.class);
+    }
+
+    @Test
+    void inactiveUserWithEmailIdentifierMustFailAuthentication() {
+        userPort.emailResult = persistedUser(2L, "alopez", "alopez@uniquindio.edu.co", false, "encoded-MyPassword123");
+
+        assertThatThrownBy(() -> loginService.login(new LoginCommand("alopez@uniquindio.edu.co", "MyPassword123")))
+                .isInstanceOf(AuthenticationFailedException.class);
+    }
+
+    // ── both fields precedence (same logical value) ───────────────────────────
+
+    @Test
+    void bothFieldsSameValueMustSucceedUsingCanonicalSemantics() {
+        userPort.usernameResult = persistedUser(1L, "jperez", "jperez@uniquindio.edu.co", true, "encoded-MyPassword123");
+
+        // LoginCommand with isAlias=false represents the canonical identifier path
+        var result = loginService.login(new LoginCommand("jperez", false, "MyPassword123"));
+
+        assertThat(result.user().getUsername().value()).isEqualTo("jperez");
+    }
+
+    // ── ambiguity handling ────────────────────────────────────────────────────
+
+    @Test
+    void ambiguousIdentifierThatMatchesBothUsernameAndEmailForDifferentUsersMustReject() {
+        // Simulates a data-quality situation: "shared@uniquindio.edu.co" is a username for user 1
+        // AND also the email for a different user 2 → two distinct candidates
+        userPort.usernameResult = persistedUser(1L, "shared@uniquindio.edu.co", "other1@test.com", true, "encoded-pass");
+        userPort.emailResult = persistedUser(2L, "another", "shared@uniquindio.edu.co", true, "encoded-pass");
+
+        assertThatThrownBy(() -> loginService.login(new LoginCommand("shared@uniquindio.edu.co", "password123")))
+                .isInstanceOf(AmbiguousLoginIdentifierException.class);
+    }
+
+    @Test
+    void sameUserFoundByBothUsernameAndEmailLookupMustNotBeAmbiguous() {
+        // Same userId deduplication: if username lookup and email lookup return the same user, it's 1 candidate
+        var user = persistedUser(1L, "jperez@uniquindio.edu.co", "jperez@uniquindio.edu.co", true, "encoded-MyPassword123");
+        userPort.usernameResult = user;
+        userPort.emailResult = user;
+
+        var result = loginService.login(new LoginCommand("jperez@uniquindio.edu.co", "MyPassword123"));
+
+        assertThat(result.user().getUsername().value()).isEqualTo("jperez@uniquindio.edu.co");
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    private User persistedUser(long id, String username, String email, boolean active, String hash) {
         return User.reconstitute(
-                new UserId(1L),
-                new Username("jperez"),
+                new UserId(id),
+                new Username(username),
                 "Juan",
                 "Pérez",
                 new PasswordHash(hash),
                 new Identification("1094123456"),
-                new Email("jperez@uniquindio.edu.co"),
+                new Email(email),
                 Role.STUDENT,
                 active
         );
     }
 
+    // ── stubs ─────────────────────────────────────────────────────────────────
+
     private static final class StubLoadUserAuthPort implements LoadUserAuthPort {
-        private User user;
+        private User usernameResult;
+        private User emailResult;
 
         @Override
         public Optional<User> loadByUsername(Username username) {
-            return Optional.ofNullable(user);
+            return Optional.ofNullable(usernameResult);
         }
 
         @Override
         public Optional<User> loadByEmail(Email email) {
-            return Optional.empty();
+            return Optional.ofNullable(emailResult);
         }
 
         @Override

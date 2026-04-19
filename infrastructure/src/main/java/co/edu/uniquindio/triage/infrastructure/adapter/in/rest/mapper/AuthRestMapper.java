@@ -33,7 +33,9 @@ public class AuthRestMapper {
     }
 
     public LoginCommand toCommand(LoginRequest request) {
-        return new LoginCommand(new Username(request.username()), request.password());
+        var isAlias = (request.identifier() == null || request.identifier().isBlank())
+                && (request.username() != null && !request.username().isBlank());
+        return new LoginCommand(request.effectiveIdentifier(), isAlias, request.password());
     }
 
     public AuthResponse toResponse(AuthResult authResult) {

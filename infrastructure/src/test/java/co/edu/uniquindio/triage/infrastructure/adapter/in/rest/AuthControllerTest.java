@@ -7,6 +7,7 @@ import co.edu.uniquindio.triage.application.port.in.auth.RegisterUseCase;
 import co.edu.uniquindio.triage.application.port.out.security.AuthToken;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.domain.enums.Role;
+import co.edu.uniquindio.triage.domain.exception.AmbiguousLoginIdentifierException;
 import co.edu.uniquindio.triage.domain.exception.AuthenticationFailedException;
 import co.edu.uniquindio.triage.domain.exception.DuplicateUserException;
 import co.edu.uniquindio.triage.domain.model.Email;
@@ -21,6 +22,7 @@ import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.mapper.UserRestMa
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.AuthenticatedActorMapper;
 import co.edu.uniquindio.triage.infrastructure.adapter.out.security.AuthenticatedUser;
 import co.edu.uniquindio.triage.application.port.out.persistence.LoadUserAuthPort;
+import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.support.HttpIdempotencySupport;
 import co.edu.uniquindio.triage.infrastructure.config.SecurityConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 
 @WebMvcTest(AuthController.class)
 @ContextConfiguration(classes = {
@@ -89,8 +92,13 @@ class AuthControllerTest {
     @MockitoBean
     private LoadUserAuthPort loadUserAuthPort;
 
+    @MockitoBean
+    private HttpIdempotencySupport httpIdempotencySupport;
+
     @BeforeEach
     void stubJwtRevalidationUserLookup() {
+        willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(7)).get())
+                .given(httpIdempotencySupport).execute(any(), any(), any(), any(), any(), any(), any(), any());
         given(loadUserAuthPort.loadById(any(UserId.class))).willAnswer(invocation -> {
             UserId id = invocation.getArgument(0);
             if (Long.valueOf(1L).equals(id.value())) {
@@ -147,7 +155,48 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginMustReturnBearerPayload() throws Exception {
+    void loginWithCanonicalIdentifierFieldMustReturnBearerPayload() throws Exception {
+        given(loginUseCase.login(any())).willReturn(new AuthResult(
+                new AuthToken("jwt-token", "Bearer", 86400),
+                sampleUser(Role.STUDENT)
+        ));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "jperez",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.firstName").value("Juan"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.lastName").value("Pérez"));
+    }
+
+    @Test
+    void loginWithEmailAsCanonicalIdentifierMustReturnBearerPayload() throws Exception {
+        given(loginUseCase.login(any())).willReturn(new AuthResult(
+                new AuthToken("jwt-token", "Bearer", 86400),
+                sampleUser(Role.STUDENT)
+        ));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "jperez@uniquindio.edu.co",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"));
+    }
+
+    @Test
+    void loginWithDeprecatedUsernameAliasMustSucceedWithParity() throws Exception {
         given(loginUseCase.login(any())).willReturn(new AuthResult(
                 new AuthToken("jwt-token", "Bearer", 86400),
                 sampleUser(Role.STUDENT)
@@ -162,10 +211,55 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.user.firstName").value("Juan"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.user.lastName").value("Pérez"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"));
+    }
+
+    @Test
+    void loginWithBothFieldsSameValueMustSucceed() throws Exception {
+        given(loginUseCase.login(any())).willReturn(new AuthResult(
+                new AuthToken("jwt-token", "Bearer", 86400),
+                sampleUser(Role.STUDENT)
+        ));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "jperez",
+                                  "username": "jperez",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value("jwt-token"));
+    }
+
+    @Test
+    void loginWithBothFieldsConflictingValuesMustReturn400WithNoToken() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "jperez",
+                                  "username": "otroUsuario",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void loginWithNoIdentifierFieldsMustReturn400() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(400));
     }
 
     @Test
@@ -176,12 +270,49 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "jperez",
+                                  "identifier": "jperez",
                                   "password": "WrongPassword123"
                                 }
                                 """))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void loginMustReturn409WhenIdentifierIsAmbiguous() throws Exception {
+        given(loginUseCase.login(any())).willThrow(new AmbiguousLoginIdentifierException());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "ambiguous@uniquindio.edu.co",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void loginTokenClaimsAndRbacMustBeInvariantAfterChange() throws Exception {
+        given(loginUseCase.login(any())).willReturn(new AuthResult(
+                new AuthToken("jwt-token", "Bearer", 86400),
+                sampleUser(Role.STUDENT)
+        ));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "identifier": "jperez",
+                                  "password": "MyPassword123"
+                                }
+                                """))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.role").value("STUDENT"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.password").doesNotExist());
     }
 
     @Test
