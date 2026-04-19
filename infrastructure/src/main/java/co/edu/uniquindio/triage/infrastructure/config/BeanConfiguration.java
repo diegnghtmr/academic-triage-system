@@ -2,8 +2,11 @@ package co.edu.uniquindio.triage.infrastructure.config;
 
 import co.edu.uniquindio.triage.application.port.in.ai.GenerateSummaryUseCase;
 import co.edu.uniquindio.triage.application.port.in.ai.SuggestClassificationUseCase;
+import co.edu.uniquindio.triage.application.port.in.catalog.GetOriginChannelVersionUseCase;
+import co.edu.uniquindio.triage.application.port.in.catalog.GetRequestTypeVersionUseCase;
 import co.edu.uniquindio.triage.application.port.in.user.GetUserByIdQuery;
 import co.edu.uniquindio.triage.application.port.in.user.GetUsersQuery;
+import co.edu.uniquindio.triage.application.port.in.user.GetUserVersionUseCase;
 import co.edu.uniquindio.triage.application.port.in.user.UpdateUserUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.LoginUseCase;
 import co.edu.uniquindio.triage.application.port.in.auth.RegisterUseCase;
@@ -15,22 +18,19 @@ import co.edu.uniquindio.triage.application.port.in.catalog.ListOriginChannelsQu
 import co.edu.uniquindio.triage.application.port.in.catalog.ListRequestTypesQuery;
 import co.edu.uniquindio.triage.application.port.in.catalog.UpdateOriginChannelUseCase;
 import co.edu.uniquindio.triage.application.port.in.catalog.UpdateRequestTypeUseCase;
+import co.edu.uniquindio.triage.application.port.in.request.*;
 import co.edu.uniquindio.triage.application.port.in.request.AddInternalNoteUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.AssignRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.AttendRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.CancelRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.ClassifyRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.CloseRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.CreateRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.GetPrioritySuggestionQuery;
-import co.edu.uniquindio.triage.application.port.in.request.GetRequestDetailQuery;
-import co.edu.uniquindio.triage.application.port.in.request.ListRequestsQuery;
-import co.edu.uniquindio.triage.application.port.in.request.PrioritizeRequestUseCase;
-import co.edu.uniquindio.triage.application.port.in.request.RejectRequestUseCase;
 import co.edu.uniquindio.triage.application.port.in.report.GetDashboardMetricsQuery;
 import co.edu.uniquindio.triage.application.port.in.businessrule.*;
+import co.edu.uniquindio.triage.application.service.businessrule.GetBusinessRuleVersionService;
+import co.edu.uniquindio.triage.application.service.catalog.GetOriginChannelVersionService;
+import co.edu.uniquindio.triage.application.service.catalog.GetRequestTypeVersionService;
+import co.edu.uniquindio.triage.application.service.user.GetUserVersionService;
 import co.edu.uniquindio.triage.application.port.out.ai.AiAssistantPort;
+import co.edu.uniquindio.triage.application.port.out.ai.LoadAiSummaryCachePort;
+import co.edu.uniquindio.triage.application.port.out.ai.SaveAiSummaryCachePort;
 import co.edu.uniquindio.triage.application.port.out.persistence.*;
+import co.edu.uniquindio.triage.application.port.out.persistence.LoadBusinessRuleVersionPort;
 import co.edu.uniquindio.triage.application.port.out.security.PasswordEncoderPort;
 import co.edu.uniquindio.triage.application.port.out.security.TokenProviderPort;
 import co.edu.uniquindio.triage.application.service.ai.AiAuthorizationSupport;
@@ -49,7 +49,10 @@ import co.edu.uniquindio.triage.application.service.catalog.UpdateOriginChannelS
 import co.edu.uniquindio.triage.application.service.catalog.UpdateRequestTypeService;
 import co.edu.uniquindio.triage.application.service.report.DashboardMetricsService;
 import co.edu.uniquindio.triage.application.service.report.ReportAuthorizationSupport;
-import co.edu.uniquindio.triage.application.service.request.*;
+import co.edu.uniquindio.triage.application.service.request.CreateRequestService;
+import co.edu.uniquindio.triage.application.service.request.GetPrioritySuggestionService;
+import co.edu.uniquindio.triage.application.service.request.GetRequestDetailService;
+import co.edu.uniquindio.triage.application.service.request.ListRequestsService;
 import co.edu.uniquindio.triage.application.service.user.GetUserByIdService;
 import co.edu.uniquindio.triage.application.service.user.GetUsersService;
 import co.edu.uniquindio.triage.application.service.user.UpdateUserService;
@@ -73,6 +76,21 @@ class BeanConfiguration {
     @Bean
     UpdateUserUseCase updateUserUseCase(LoadUserAuthPort loadUserAuthPort, SaveUserPort saveUserPort) {
         return new UpdateUserService(loadUserAuthPort, saveUserPort);
+    }
+
+    @Bean
+    GetUserVersionUseCase getUserVersionUseCase(LoadUserVersionPort loadUserVersionPort) {
+        return new GetUserVersionService(loadUserVersionPort);
+    }
+
+    @Bean
+    GetRequestTypeVersionUseCase getRequestTypeVersionUseCase(LoadCatalogVersionPort loadCatalogVersionPort) {
+        return new GetRequestTypeVersionService(loadCatalogVersionPort);
+    }
+
+    @Bean
+    GetOriginChannelVersionUseCase getOriginChannelVersionUseCase(LoadCatalogVersionPort loadCatalogVersionPort) {
+        return new GetOriginChannelVersionService(loadCatalogVersionPort);
     }
 
     @Bean
@@ -102,6 +120,11 @@ class BeanConfiguration {
     GetBusinessRuleQueryUseCase getBusinessRuleQueryUseCase(LoadBusinessRulePort loadBusinessRulePort,
                                                             BusinessRuleViewSupport businessRuleViewSupport) {
         return new GetBusinessRuleService(loadBusinessRulePort, businessRuleViewSupport);
+    }
+
+    @Bean
+    GetBusinessRuleVersionUseCase getBusinessRuleVersionUseCase(LoadBusinessRuleVersionPort loadBusinessRuleVersionPort) {
+        return new GetBusinessRuleVersionService(loadBusinessRuleVersionPort);
     }
 
     @Bean
@@ -200,6 +223,41 @@ class BeanConfiguration {
     }
 
     @Bean
+    ClassifyRequestUseCase classifyRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::classify;
+    }
+
+    @Bean
+    PrioritizeRequestUseCase prioritizeRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::prioritize;
+    }
+
+    @Bean
+    AssignRequestUseCase assignRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::assign;
+    }
+
+    @Bean
+    AttendRequestUseCase attendRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::attend;
+    }
+
+    @Bean
+    CloseRequestUseCase closeRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::close;
+    }
+
+    @Bean
+    CancelRequestUseCase cancelRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::cancel;
+    }
+
+    @Bean
+    RejectRequestUseCase rejectRequestUseCase(RequestMutationTransactionalFacade facade) {
+        return facade::reject;
+    }
+
+    @Bean
     ListRequestsQuery listRequestsQuery(SearchRequestPort searchRequestPort) {
         return new ListRequestsService(searchRequestPort);
     }
@@ -207,117 +265,6 @@ class BeanConfiguration {
     @Bean
     GetRequestDetailQuery getRequestDetailQuery(LoadRequestPort loadRequestPort) {
         return new GetRequestDetailService(loadRequestPort);
-    }
-
-    @Bean
-    ClassifyRequestUseCase classifyRequestUseCase(LoadRequestPort loadRequestPort,
-                                                  LoadRequestTypePort loadRequestTypePort,
-                                                  LoadOriginChannelPort loadOriginChannelPort,
-                                                  LoadUserAuthPort loadUserAuthPort,
-                                                  SaveRequestPort saveRequestPort) {
-        return new ClassifyRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    PrioritizeRequestUseCase prioritizeRequestUseCase(LoadRequestPort loadRequestPort,
-                                                      LoadRequestTypePort loadRequestTypePort,
-                                                      LoadOriginChannelPort loadOriginChannelPort,
-                                                      LoadUserAuthPort loadUserAuthPort,
-                                                      SaveRequestPort saveRequestPort) {
-        return new PrioritizeRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    AssignRequestUseCase assignRequestUseCase(LoadRequestPort loadRequestPort,
-                                              LoadRequestTypePort loadRequestTypePort,
-                                              LoadOriginChannelPort loadOriginChannelPort,
-                                              LoadUserAuthPort loadUserAuthPort,
-                                              SaveRequestPort saveRequestPort) {
-        return new AssignRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    AttendRequestUseCase attendRequestUseCase(LoadRequestPort loadRequestPort,
-                                              LoadRequestTypePort loadRequestTypePort,
-                                              LoadOriginChannelPort loadOriginChannelPort,
-                                              LoadUserAuthPort loadUserAuthPort,
-                                              SaveRequestPort saveRequestPort) {
-        return new AttendRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    CloseRequestUseCase closeRequestUseCase(LoadRequestPort loadRequestPort,
-                                            LoadRequestTypePort loadRequestTypePort,
-                                            LoadOriginChannelPort loadOriginChannelPort,
-                                            LoadUserAuthPort loadUserAuthPort,
-                                            SaveRequestPort saveRequestPort) {
-        return new CloseRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    CancelRequestUseCase cancelRequestUseCase(LoadRequestPort loadRequestPort,
-                                              LoadRequestTypePort loadRequestTypePort,
-                                              LoadOriginChannelPort loadOriginChannelPort,
-                                              LoadUserAuthPort loadUserAuthPort,
-                                              SaveRequestPort saveRequestPort) {
-        return new CancelRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
-    }
-
-    @Bean
-    AddInternalNoteUseCase addInternalNoteUseCase(LoadRequestPort loadRequestPort,
-                                                  SaveRequestPort saveRequestPort) {
-        return new AddInternalNoteService(loadRequestPort, saveRequestPort);
-    }
-
-    @Bean
-    RejectRequestUseCase rejectRequestUseCase(LoadRequestPort loadRequestPort,
-                                              LoadRequestTypePort loadRequestTypePort,
-                                              LoadOriginChannelPort loadOriginChannelPort,
-                                              LoadUserAuthPort loadUserAuthPort,
-                                              SaveRequestPort saveRequestPort) {
-        return new RejectRequestService(
-                loadRequestPort,
-                loadRequestTypePort,
-                loadOriginChannelPort,
-                loadUserAuthPort,
-                saveRequestPort
-        );
     }
 
     @Bean
@@ -346,7 +293,11 @@ class BeanConfiguration {
     @Bean
     GenerateSummaryUseCase generateSummaryUseCase(AiAssistantPort aiAssistantPort,
                                                   LoadRequestPort loadRequestPort,
+                                                  LoadRequestVersionPort loadRequestVersionPort,
+                                                  LoadAiSummaryCachePort loadAiSummaryCachePort,
+                                                  SaveAiSummaryCachePort saveAiSummaryCachePort,
                                                   AiAuthorizationSupport aiAuthorizationSupport) {
-        return new GenerateSummaryService(aiAssistantPort, loadRequestPort, aiAuthorizationSupport);
+        return new GenerateSummaryService(aiAssistantPort, loadRequestPort, loadRequestVersionPort,
+                loadAiSummaryCachePort, saveAiSummaryCachePort, aiAuthorizationSupport);
     }
 }

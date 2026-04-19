@@ -55,6 +55,18 @@ spring:
 
 # JWT
 app:
+  idempotency:
+    ttl:
+      # Default TTL for business-mutation scopes (requests:*, catalogs:*, business-rules:*, auth:*).
+      # 7 days covers typical mobile retry windows and client-side failures.
+      default-days: 7
+      # Shorter TTL for AI classification suggestions — results are cheap to regenerate.
+      ai-days: 1
+    cleanup:
+      # Cron expression: every 10 minutes. Override with APP_IDEMPOTENCY_CLEANUP_SCHEDULE.
+      schedule: "0 */10 * * * *"
+      # Rows deleted per cleanup run. Small batches avoid long-lived DELETE locks.
+      batch-size: 500
   ai:
     provider: ${APP_AI_PROVIDER:none}
   jwt:
@@ -65,6 +77,18 @@ app:
     # APP_DOCS_ENABLED=true and, unless APP_DOCS_PUBLIC_ENABLED=true is also set, access remains restricted.
     enabled: ${APP_DOCS_ENABLED:false}
     public-enabled: ${APP_DOCS_PUBLIC_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # Springdoc
 springdoc:
