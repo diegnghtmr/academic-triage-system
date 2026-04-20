@@ -524,7 +524,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const responseEtag = pm.response.headers.get('ETag');",
+                  "if (responseEtag) { pm.collectionVariables.set('businessRuleETag', responseEtag); }"
                 ]
               }
             }
@@ -1039,7 +1041,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{businessRuleName}}\",\n  \"description\": \"Regla creada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"HIGH\",\n  \"requestTypeId\": {{createdRequestTypeId}}\n}",
+              "raw": "{\n  \"name\": \"{{businessRuleName}}\",\n  \"description\": \"Regla creada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"DEADLINE\",\n  \"conditionValue\": \"7\",\n  \"resultingPriority\": \"HIGH\",\n  \"requestTypeId\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1103,7 +1105,22 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const updateEtag = pm.response.headers.get('ETag');",
+                  "if (updateEtag) {",
+                  "  pm.collectionVariables.set('businessRuleETag', updateEtag);",
+                  "} else {",
+                  "  pm.sendRequest({",
+                  "    url: `${pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || pm.variables.get('baseUrl')}/business-rules/${pm.collectionVariables.get('createdBusinessRuleId')}`,",
+                  "    method: 'GET',",
+                  "    header: { Authorization: `Bearer ${pm.collectionVariables.get('adminToken')}` }",
+                  "  }, function (_err, res) {",
+                  "    if (res && res.headers) {",
+                  "      const latestEtag = res.headers.get('ETag');",
+                  "      if (latestEtag) { pm.collectionVariables.set('businessRuleETag', latestEtag); }",
+                  "    }",
+                  "  });",
+                  "}"
                 ]
               }
             }
@@ -1132,7 +1149,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{updatedBusinessRuleName}}\",\n  \"description\": \"Regla actualizada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"REQUEST_TYPE\",\n  \"conditionValue\": \"{{createdRequestTypeId}}\",\n  \"resultingPriority\": \"MEDIUM\",\n  \"requestTypeId\": {{createdRequestTypeId}},\n  \"active\": true\n}",
+              "raw": "{\n  \"name\": \"{{updatedBusinessRuleName}}\",\n  \"description\": \"Regla actualizada autom\u00e1ticamente desde Postman\",\n  \"conditionType\": \"DEADLINE\",\n  \"conditionValue\": \"10\",\n  \"resultingPriority\": \"MEDIUM\",\n  \"requestTypeId\": null,\n  \"active\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2442,14 +2459,14 @@
       "name": "08 - Contratos (Idempotency & ETag)",
       "item": [
         {
-          "name": "Replay POST Request (200 OK)",
+          "name": "Replay POST Request (201 Replayed)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 (Replayed)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Status 201 (Replayed)', function () { pm.response.to.have.status(201); });",
                   "pm.test('Idempotency-Status is replayed', function() { pm.expect(pm.response.headers.get('Idempotency-Status')).to.eql('replayed'); });"
                 ]
               }
