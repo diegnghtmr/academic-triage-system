@@ -129,6 +129,7 @@ class ApplicationAiDisabledBehaviorTest {
     void suggestClassification_ShouldReturn503_WhenAiIsDisabled() throws Exception {
         mockMvc.perform(post("/api/v1/ai/suggest-classification")
                         .header("Authorization", "Bearer " + staffToken)
+                        .header("Idempotency-Key", "ai-disabled-suggest-" + Instant.now().toEpochMilli())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

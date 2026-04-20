@@ -64,6 +64,7 @@ class ApplicationRequestCreationSmokeTest {
     void createRequestMustPersistAndReturn201ForAuthenticatedStudent() throws Exception {
         mockMvc.perform(post("/api/v1/requests")
                         .header("Authorization", "Bearer " + studentToken())
+                        .header("Idempotency-Key", "request-smoke-create-" + studentId + "-" + Instant.now().toEpochMilli())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
