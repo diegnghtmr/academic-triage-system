@@ -1,4 +1,4 @@
-# Academic Triage System Backend
+ # Academic Triage System Backend
 
 Backend service for managing the full lifecycle of academic requests at Universidad del Quindío — from intake and classification to prioritization, assignment, follow-up, and closure.
 
