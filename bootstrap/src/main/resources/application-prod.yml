@@ -1,6 +1,14 @@
 spring:
   jpa:
     show-sql: false
+  datasource:
+    hikari:
+      # Clever Cloud MySQL DEV permite ~5 conexiones. Mantener pool chico.
+      maximum-pool-size: ${DB_POOL_MAX:3}
+      minimum-idle: ${DB_POOL_MIN:1}
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1800000
 
 logging:
   level:

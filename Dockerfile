@@ -26,4 +26,8 @@ USER spring
 
 EXPOSE 8080
 
+# Default JVM tuning para entornos con poca RAM (e.g. Render free 512MB).
+# Sobrescribible vía JAVA_TOOL_OPTIONS en el entorno.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Xss256k"
+
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

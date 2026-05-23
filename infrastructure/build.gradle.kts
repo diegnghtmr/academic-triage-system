@@ -41,7 +41,10 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-model-openai:$springAiVersion")
 
     // Database
+    // MariaDB driver: dev local (docker-compose).
+    // MySQL Connector/J: prod (TiDB Cloud Serverless, requiere TLS).
     runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
+    runtimeOnly("com.mysql:mysql-connector-j")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-mysql")
 
