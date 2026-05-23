@@ -68,7 +68,7 @@ public class SecurityConfiguration {
                 .filter(origin -> !origin.isBlank())
                 .toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Idempotency-Key"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "If-Match"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
