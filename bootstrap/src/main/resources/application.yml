@@ -49,6 +49,9 @@ spring:
         transcription: none
     openai:
       api-key: ${SPRING_AI_OPENAI_API_KEY:}
+      # Override base-url to point at any OpenAI-compatible provider (Groq,
+      # Together, Ollama, etc.). Default keeps OpenAI for backwards compat.
+      base-url: ${SPRING_AI_OPENAI_BASE_URL:https://api.openai.com}
       chat:
         options:
           model: ${SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL:gpt-4o-mini}

@@ -16,6 +16,10 @@ import co.edu.uniquindio.triage.domain.exception.InvalidStateTransitionException
 import co.edu.uniquindio.triage.domain.exception.RequestNotFoundException;
 import co.edu.uniquindio.triage.domain.exception.UnauthorizedOperationException;
 import co.edu.uniquindio.triage.infrastructure.adapter.in.rest.dto.common.FieldErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -32,6 +36,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({DuplicateUserException.class, DuplicateCatalogEntryException.class})
     ResponseEntity<ProblemDetail> handleDuplicate(RuntimeException exception) {
@@ -66,6 +72,38 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AiServiceUnavailableException.class)
     ResponseEntity<ProblemDetail> handleAiUnavailable(AiServiceUnavailableException exception) {
         return build(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), null);
+    }
+
+    /**
+     * Catches errors raised by Spring AI when the upstream provider rejects a
+     * request (bad API key, model not found, quota exhausted, etc.). Without
+     * this handler the exception propagates as an unhandled 500 and — when
+     * the upstream returned HTTP 401 — Spring Security's exception flow ends
+     * up writing the JWT entry-point response, which is misleading: the
+     * user's token is fine, the AI provider config is not. We translate every
+     * non-transient AI failure to HTTP 503 with a descriptive problem detail
+     * so the frontend can show "AI no disponible" inline instead of booting
+     * the user back to login.
+     */
+    @ExceptionHandler(NonTransientAiException.class)
+    ResponseEntity<ProblemDetail> handleAiNonTransient(NonTransientAiException exception) {
+        log.warn("AI provider non-transient error: {}", exception.getMessage());
+        return build(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "El proveedor de IA rechazó la solicitud. Revise la configuración del servicio o intente más tarde.",
+                null,
+                URI.create("urn:problem:ai:provider-error"));
+    }
+
+    /** Same idea for transient errors (rate limits, connection blips). */
+    @ExceptionHandler(TransientAiException.class)
+    ResponseEntity<ProblemDetail> handleAiTransient(TransientAiException exception) {
+        log.warn("AI provider transient error: {}", exception.getMessage());
+        return build(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "El proveedor de IA no está disponible en este momento. Intente nuevamente en unos segundos.",
+                null,
+                URI.create("urn:problem:ai:provider-transient"));
     }
 
     @ExceptionHandler(MissingIdempotencyKeyException.class)
