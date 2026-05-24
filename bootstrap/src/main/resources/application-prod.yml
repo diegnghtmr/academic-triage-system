@@ -1,6 +1,9 @@
 spring:
   jpa:
     show-sql: false
+  flyway:
+    # Lab/showcase demo seed (V27+) corre solo en este perfil — no en tests ni dev.
+    locations: classpath:db/migration,classpath:db/migration-lab
   datasource:
     hikari:
       # Clever Cloud MySQL DEV permite ~5 conexiones. Mantener pool chico.
