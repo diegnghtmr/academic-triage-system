@@ -116,6 +116,11 @@ flowchart LR
 
 For a **disposable local stack**, [docker-smoke.sh](scripts/docker-smoke.sh) probes health, Swagger, registration, login, catalogs, and request creation/listing. [docker-persistence-check.sh](scripts/docker-persistence-check.sh) checks that cases survive service restarts. [smoke-concurrency-idempotency.sh](scripts/smoke-concurrency-idempotency.sh) and [audit-idempotency.sql](scripts/audit-idempotency.sql) cover request replay and concurrent writes.
 
+## Documentation
+
+- [Backend reference](docs/backend-reference.md) — domain and module boundaries, API permissions, concurrency, optional AI setup, and local validation runbooks.
+- [OpenAPI contract](docs/openapi-academic-triage.yaml) — endpoints, payloads, response codes, and required headers.
+
 ## Related repositories
 
 - [academic-triage-frontend](https://github.com/diegnghtmr/academic-triage-frontend) — Angular client for students, staff, and administrators.
