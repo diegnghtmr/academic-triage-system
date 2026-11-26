@@ -514,3 +514,7 @@ If you are reviewing or extending this project, start with:
 3. `README.md`
 
 That path gives you the architecture, the contract, the runtime model, and the developer workflow in the right order.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
